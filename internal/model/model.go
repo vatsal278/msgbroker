@@ -11,13 +11,16 @@ type Subscriber struct {
 }
 
 type Publisher struct {
-	Name    map[string]string `form:"name" json:"name" validate:"required"`
-	Channel string            `form:"channel" json:"channel" validate:"required"`
+	Publisher struct {
+		HttpMethod  string
+		CallbackUrl string
+	}
+	Channel string `form:"channel" json:"channel" validate:"required"`
 }
 
 type Updates struct {
-	Publisher string `form:"publisher" json:"publisher" validate:"required"`
-	Update    string `form:"update" json:"update" validate:"required"`
+	Publisher Publisher `form:"publisher" json:"publisher" validate:"required"`
+	Update    string    `form:"update" json:"update" validate:"required"`
 }
 
 type MessageBroker struct {

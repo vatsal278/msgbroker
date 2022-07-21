@@ -83,7 +83,6 @@ func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 			log.Println(err.Error())
 		}
 		log.Print("Successfully Subscribed to the channel")
-		return
 	}
 }
 
@@ -160,6 +159,7 @@ func RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var updates model.Updates
+		var subscriber model.Subscriber
 		w.Header().Set("Content-Type", "application/json")
 		//Read body of the request
 		body, err := ioutil.ReadAll(r.Body)
@@ -198,14 +198,30 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		ChannelUpdates = append(ChannelUpdates, updates)
-		w.WriteHeader(http.StatusCreated)
+		count := 0
+		for _, pub := range PublisherList {
 
-		err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Successfully sent updates to the channel", nil))
-		if err != nil {
-			log.Println(err.Error())
+			if pub.Publisher == updates.Publisher.Publisher {
+				count += 1
+			}
 		}
-		log.Print("Successfully sent updates to the channel")
+		if count == 0 {
+			err = json.NewEncoder(w).Encode(Response_Writer(http.StatusNotFound, "No publisher found with the specified name for specified channel", nil))
+			if err != nil {
+				log.Println(err.Error())
+			}
+			return
+		} else {
+			ChannelUpdates = append(ChannelUpdates, updates)
+			w.WriteHeader(http.StatusCreated)
+
+			err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Successfully sent updates to the channel", nil))
+			if err != nil {
+				log.Println(err.Error())
+			}
+			log.Print("Successfully sent updates to the channel")
+		}
+
 	}
 }
 
