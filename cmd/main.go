@@ -2,9 +2,10 @@ package main
 
 import (
 	"log"
-	"msgbroker/internal/router"
 	"net/http"
 	"os"
+
+	"github.com/vatsal278/msgbroker/internal/router"
 
 	_ "github.com/go-sql-driver/mysql"
 )
