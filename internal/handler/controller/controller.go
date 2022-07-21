@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
-	"msgbroker/internal/constants"
-	"msgbroker/internal/model"
 	"net/http"
+
+	"github.com/vatsal278/msgbroker/internal/constants"
+	"github.com/vatsal278/msgbroker/internal/model"
 
 	"github.com/go-playground/validator"
 )

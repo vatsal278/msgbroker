@@ -2,9 +2,10 @@ package router
 
 import (
 	"fmt"
-	article_controller "msgbroker/internal/handler/controller"
 	"net/http"
 	"os"
+
+	article_controller "github.com/vatsal278/msgbroker/internal/handler/controller"
 
 	"github.com/gorilla/mux"
 )
