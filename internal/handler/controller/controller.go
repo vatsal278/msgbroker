@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"reflect"
 
 	"github.com/vatsal278/msgbroker/internal/constants"
 	"github.com/vatsal278/msgbroker/internal/model"
@@ -53,6 +54,7 @@ func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 
 			return
 		}
+		//Create separete pkg directory
 		validate := validator.New()
 		errs := validate.Struct(publisher)
 		if errs != nil {
@@ -64,31 +66,24 @@ func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		count := 0
-		for _, pub := range SubscriberList {
 
-			if pub == model.Subscriber(publisher) {
-				count += 1
+		go func(publisher model.Publisher) {
+			for _, pub := range PublisherList {
+
+				if reflect.DeepEqual(model.Publisher(publisher), pub) {
+					return
+				}
 			}
-		}
-		if count == 0 {
 			PublisherList = append(PublisherList, publisher)
-			w.WriteHeader(http.StatusCreated)
-			err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Successfully Subscribed to the channel", nil))
-			if err != nil {
-				log.Println(err.Error())
-			}
-			log.Print("Successfully Subscribed to the channel")
-			return
-		} else {
-			w.WriteHeader(http.StatusCreated)
-			err = json.NewEncoder(w).Encode(Response_Writer(http.StatusOK, "Subscriber already exists", nil))
-			if err != nil {
-				log.Println(err.Error())
-			}
-			log.Print("Subscriber already exists")
-			return
+		}(publisher)
+
+		w.WriteHeader(http.StatusCreated)
+		err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Successfully Subscribed to the channel", nil))
+		if err != nil {
+			log.Println(err.Error())
 		}
+		log.Print("Successfully Subscribed to the channel")
+		return
 	}
 }
 
@@ -205,12 +200,12 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 		}
 		ChannelUpdates = append(ChannelUpdates, updates)
 		w.WriteHeader(http.StatusCreated)
+
 		err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Successfully sent updates to the channel", nil))
 		if err != nil {
 			log.Println(err.Error())
 		}
 		log.Print("Successfully sent updates to the channel")
-		return
 	}
 }
 
