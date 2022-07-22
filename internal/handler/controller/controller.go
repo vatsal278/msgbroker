@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 	"reflect"
-	"time"
+	"sync"
 
 	"github.com/vatsal278/msgbroker/internal/constants"
 	"github.com/vatsal278/msgbroker/internal/model"
@@ -19,13 +19,18 @@ var SubscriberList []model.Subscriber
 var PublisherList []model.Publisher
 var ChannelUpdates []model.Updates
 
+var SubscriberMap map[string][]model.Subscriber
+var PublisherMap map[string]map[string]struct{}
+var mutex sync.Mutex
+var MessageBroker = model.MessageBroker{
+	SubM: SubscriberMap,
+	PubM: PublisherMap,
+}
+
 type IController interface {
 	RegisterPublisher() func(w http.ResponseWriter, r *http.Request)
 	RegisterSubscriber() func(w http.ResponseWriter, r *http.Request)
 	PublishMessage() func(w http.ResponseWriter, r *http.Request)
-}
-type TController interface {
-	NotifySubscriber() func(w http.ResponseWriter, r *http.Request)
 }
 
 func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
@@ -80,6 +85,7 @@ func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			PublisherList = append(PublisherList, publisher)
+			log.Printf("%+v \n", PublisherList)
 		}(publisher)
 
 		w.WriteHeader(http.StatusCreated)
@@ -133,7 +139,28 @@ func RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		count := 0
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func(s model.Subscriber) {
+			defer wg.Done()
+			MessageBroker.Lock()
+			defer MessageBroker.Unlock()
+			subs := MessageBroker.SubM[s.Channel]
+
+			for _, v := range subs {
+				if reflect.DeepEqual(v, s) {
+					return
+				}
+			}
+			subs = append(subs, s)
+
+			MessageBroker.SubM[s.Channel] = subs
+			log.Print(subs)
+			log.Print(MessageBroker.SubM[s.Channel])
+		}(subscriber)
+		wg.Wait()
+
+		/*count := 0
 		for _, sub := range SubscriberList {
 
 			if sub == subscriber {
@@ -142,6 +169,7 @@ func RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 		}
 		if count == 0 {
 			SubscriberList = append(SubscriberList, subscriber)
+			log.Printf("%+v \n", SubscriberList)
 			w.WriteHeader(http.StatusCreated)
 			err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Successfully Subscribed to the channel", nil))
 			if err != nil {
@@ -157,7 +185,7 @@ func RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 			}
 			log.Print("Successfully Subscribed to the channel")
 			return
-		}
+		}*/
 	}
 }
 
@@ -205,7 +233,7 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 		count := 0
 		for _, pub := range PublisherList {
 
-			if pub.Publisher == updates.Publisher.Publisher {
+			if pub.Name == updates.Publisher.Name {
 				count += 1
 			}
 		}
@@ -226,23 +254,26 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 			log.Print("Successfully sent updates to the channel")
 		}
 		for _, v := range SubscriberList {
-			if v.Channel == "c1" {
-				log.Print("sending notification")
-				//Call another route to notify publisher
-				reqBody, err := json.Marshal(updates)
-				if err != nil {
-					log.Println(err.Error())
-				}
-				timeout := time.Duration(2 * time.Second)
-				client := http.Client{
-					Timeout: timeout,
-				}
-				request, err := http.NewRequest(v.Subscriber.HttpMethod, v.Subscriber.CallbackUrl, bytes.NewBuffer(reqBody))
-				request.Header.Set("Content-Type", "application/json")
-				if err != nil {
-					log.Println(err.Error())
-				}
-				client.Do(request)
+			if v.Channel == updates.Publisher.Channel {
+				go func() {
+					log.Print("sending notification")
+					//Call another route to notify publisher
+					reqBody, err := json.Marshal(updates.Update)
+					if err != nil {
+						log.Println(err.Error())
+					}
+					//timeout := time.Duration(2 * time.Second)
+					client := http.DefaultClient
+					method := v.CallBack.HttpMethod
+					url := v.CallBack.CallbackUrl
+					request, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
+					request.Header.Set("Content-Type", "application/json")
+					if err != nil {
+						log.Println(err.Error())
+					}
+					log.Printf("%+v \n", *request)
+					client.Do(request)
+				}()
 			}
 
 		}

@@ -3,17 +3,20 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/vatsal278/msgbroker/internal/router"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
+	/*go func() {
+		r := router.TempRouter()
+		log.Fatal(http.ListenAndServe(":"+"8081", r))
+	}()*/
 	r := router.Router()
-	port := os.Getenv("PORT")
-
-	log.Fatal(http.ListenAndServe(":"+port, r))
+	log.Fatal(http.ListenAndServe(":"+"9090", r))
 
 }
+
+//to dos: 1. implement diff. go routines for reducing latency at various end points
+//2. use maps for storing and retrieving sub and pub details and for publishing msg
+//cleanup unused code

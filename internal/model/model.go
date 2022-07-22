@@ -2,19 +2,17 @@ package model
 
 import "sync"
 
+type CallBack struct {
+	HttpMethod  string
+	CallbackUrl string
+}
 type Subscriber struct {
-	Subscriber struct {
-		HttpMethod  string
-		CallbackUrl string
-	}
-	Channel string `form:"channel" json:"channel" validate:"required"`
+	CallBack CallBack
+	Channel  string `form:"channel" json:"channel" validate:"required"`
 }
 
 type Publisher struct {
-	Publisher struct {
-		HttpMethod  string
-		CallbackUrl string
-	}
+	Name    string `form:"name" json:"name" validate:"required"`
 	Channel string `form:"channel" json:"channel" validate:"required"`
 }
 
