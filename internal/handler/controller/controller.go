@@ -15,13 +15,9 @@ import (
 	"github.com/go-playground/validator"
 )
 
-var SubscriberList []model.Subscriber
-var PublisherList []model.Publisher
-var ChannelUpdates []model.Updates
+var SubscriberMap = map[string][]model.Subscriber{}
+var PublisherMap = map[string]map[string]struct{}{}
 
-var SubscriberMap map[string][]model.Subscriber
-var PublisherMap map[string]map[string]struct{}
-var mutex sync.Mutex
 var MessageBroker = model.MessageBroker{
 	SubM: SubscriberMap,
 	PubM: PublisherMap,
@@ -76,17 +72,8 @@ func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-
-		go func(publisher model.Publisher) {
-			for _, pub := range PublisherList {
-
-				if reflect.DeepEqual(model.Publisher(publisher), pub) {
-					return
-				}
-			}
-			PublisherList = append(PublisherList, publisher)
-			log.Printf("%+v \n", PublisherList)
-		}(publisher)
+		x := MessageBroker.PubM[publisher.Channel]
+		MessageBroker.PubM[publisher.Channel] = x
 
 		w.WriteHeader(http.StatusCreated)
 		err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Successfully Subscribed to the channel", nil))
@@ -149,43 +136,26 @@ func RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 
 			for _, v := range subs {
 				if reflect.DeepEqual(v, s) {
+					w.WriteHeader(http.StatusCreated)
+					err = json.NewEncoder(w).Encode(Response_Writer(http.StatusOK, "Subscriber already exists", nil))
+					if err != nil {
+						log.Println(err.Error())
+					}
+					log.Print("Subscriber already exists")
 					return
 				}
 			}
 			subs = append(subs, s)
-
 			MessageBroker.SubM[s.Channel] = subs
-			log.Print(subs)
-			log.Print(MessageBroker.SubM[s.Channel])
-		}(subscriber)
-		wg.Wait()
 
-		/*count := 0
-		for _, sub := range SubscriberList {
-
-			if sub == subscriber {
-				count += 1
-			}
-		}
-		if count == 0 {
-			SubscriberList = append(SubscriberList, subscriber)
-			log.Printf("%+v \n", SubscriberList)
 			w.WriteHeader(http.StatusCreated)
 			err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Successfully Subscribed to the channel", nil))
 			if err != nil {
 				log.Println(err.Error())
 			}
 			log.Print("Successfully Subscribed to the channel")
-			return
-		} else {
-			w.WriteHeader(http.StatusCreated)
-			err = json.NewEncoder(w).Encode(Response_Writer(http.StatusOK, "Subscriber already exists", nil))
-			if err != nil {
-				log.Println(err.Error())
-			}
-			log.Print("Successfully Subscribed to the channel")
-			return
-		}*/
+		}(subscriber)
+		wg.Wait()
 	}
 }
 
@@ -230,51 +200,59 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		count := 0
-		for _, pub := range PublisherList {
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func(p model.Publisher) {
+			defer wg.Done()
+			MessageBroker.Lock()
+			defer MessageBroker.Unlock()
+			pubm := MessageBroker.PubM[p.Channel]
+			pubs := pubm[updates.Publisher.Name]
 
-			if pub.Name == updates.Publisher.Name {
-				count += 1
-			}
-		}
-		if count == 0 {
-			err = json.NewEncoder(w).Encode(Response_Writer(http.StatusNotFound, "No publisher found with the specified name for specified channel", nil))
-			if err != nil {
-				log.Println(err.Error())
-			}
-			return
-		} else {
-			ChannelUpdates = append(ChannelUpdates, updates)
-			w.WriteHeader(http.StatusCreated)
-
-			err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Successfully sent updates to the channel", nil))
-			if err != nil {
-				log.Println(err.Error())
-			}
-			log.Print("Successfully sent updates to the channel")
-		}
-		for _, v := range SubscriberList {
-			if v.Channel == updates.Publisher.Channel {
-				go func() {
-					log.Print("sending notification")
-					//Call another route to notify publisher
-					reqBody, err := json.Marshal(updates.Update)
+			for _, v := range pubm {
+				if reflect.DeepEqual(v, pubs) {
+					err = json.NewEncoder(w).Encode(Response_Writer(http.StatusNotFound, "No publisher found with the specified name for specified channel", nil))
 					if err != nil {
 						log.Println(err.Error())
 					}
-					//timeout := time.Duration(2 * time.Second)
-					client := http.DefaultClient
-					method := v.CallBack.HttpMethod
-					url := v.CallBack.CallbackUrl
-					request, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
-					request.Header.Set("Content-Type", "application/json")
-					if err != nil {
-						log.Println(err.Error())
-					}
-					log.Printf("%+v \n", *request)
-					client.Do(request)
-				}()
+					return
+				}
 			}
+		}(updates.Publisher)
+		wg.Wait()
+		//ChannelUpdates = append(ChannelUpdates, updates)
+		w.WriteHeader(http.StatusCreated)
+
+		err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Successfully sent updates to the channel", nil))
+		if err != nil {
+			log.Println(err.Error())
+		}
+		log.Print("Successfully sent updates to the channel")
+		for _, v := range MessageBroker.SubM[updates.Publisher.Channel] {
+			go func() {
+				defer wg.Done()
+				MessageBroker.Lock()
+				defer MessageBroker.Unlock()
+				log.Print("sending notification")
+				//Call another route to notify publisher
+				reqBody, err := json.Marshal(updates.Update)
+				if err != nil {
+					log.Println(err.Error())
+				}
+				//timeout := time.Duration(2 * time.Second)
+				client := http.DefaultClient
+				method := v.CallBack.HttpMethod
+				url := v.CallBack.CallbackUrl
+				request, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
+				request.Header.Set("Content-Type", "application/json")
+				if err != nil {
+					log.Println(err.Error())
+				}
+				log.Printf("%+v \n", *request)
+				client.Do(request)
+				wg.Wait()
+			}()
+			wg.Wait()
 
 		}
 	}
