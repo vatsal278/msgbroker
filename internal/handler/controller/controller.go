@@ -22,6 +22,9 @@ type IController interface {
 	RegisterSubscriber() func(w http.ResponseWriter, r *http.Request)
 	PublishMessage() func(w http.ResponseWriter, r *http.Request)
 }
+type TController interface {
+	NotifySubscriber() func(w http.ResponseWriter, r *http.Request)
+}
 
 func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -159,7 +162,6 @@ func RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var updates model.Updates
-		var subscriber model.Subscriber
 		w.Header().Set("Content-Type", "application/json")
 		//Read body of the request
 		body, err := ioutil.ReadAll(r.Body)
@@ -221,7 +223,51 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 			}
 			log.Print("Successfully sent updates to the channel")
 		}
+		for _, v := range SubscriberList {
+			if v.Channel == "c1" {
+				log.Print("sending notification")
+				//do this
+			}
+		}
+	}
+}
 
+func NotifySubscriber() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var updates model.Updates
+		w.Header().Set("Content-Type", "application/json")
+		//Read body of the request
+		body, err := ioutil.ReadAll(r.Body)
+		defer r.Body.Close()
+
+		if err != nil {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			err := json.NewEncoder(w).Encode(Response_Writer(http.StatusInternalServerError, constants.Parse_Err, nil))
+			if err != nil {
+				log.Println(err.Error())
+			}
+
+			return
+		}
+		// parse json encoded data into structure
+		err = json.Unmarshal(body, &updates)
+		if err != nil {
+			log.Println(err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			err := json.NewEncoder(w).Encode(Response_Writer(http.StatusInternalServerError, constants.Parse_Err, nil))
+			if err != nil {
+				log.Println(err.Error())
+			}
+
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "received updates on the channel", nil))
+		if err != nil {
+			log.Println(err.Error())
+		}
+		log.Print("Received updates on the channel")
 	}
 }
 
