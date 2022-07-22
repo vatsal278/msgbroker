@@ -1,11 +1,13 @@
 package article_controller
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"reflect"
+	"time"
 
 	"github.com/vatsal278/msgbroker/internal/constants"
 	"github.com/vatsal278/msgbroker/internal/model"
@@ -226,8 +228,23 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 		for _, v := range SubscriberList {
 			if v.Channel == "c1" {
 				log.Print("sending notification")
-				//do this
+				//Call another route to notify publisher
+				reqBody, err := json.Marshal(updates)
+				if err != nil {
+					log.Println(err.Error())
+				}
+				timeout := time.Duration(2 * time.Second)
+				client := http.Client{
+					Timeout: timeout,
+				}
+				request, err := http.NewRequest(v.Subscriber.HttpMethod, v.Subscriber.CallbackUrl, bytes.NewBuffer(reqBody))
+				request.Header.Set("Content-Type", "application/json")
+				if err != nil {
+					log.Println(err.Error())
+				}
+				client.Do(request)
 			}
+
 		}
 	}
 }

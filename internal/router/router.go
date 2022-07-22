@@ -14,7 +14,7 @@ func Router() *mux.Router {
 	//Initialised the router
 	router := mux.NewRouter()
 	//router.NotFoundHandler = http.HandlerFunc(e.NoRouteFound())
-	//router.HandleFunc("/subscriber", e.RegisterSubscriber()).Methods(http.MethodPost) //Endpoint for inserting
+	router.HandleFunc("/subscriber", e.RegisterSubscriber()).Methods(http.MethodPost) //Endpoint for inserting
 	router.HandleFunc("/publisher", e.RegisterPublisher()).Methods(http.MethodPost)
 	router.HandleFunc("/update", e.PublishMessage()).Methods(http.MethodPost)
 	http.Handle("/", router)
