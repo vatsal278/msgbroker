@@ -230,9 +230,9 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 		log.Print("Successfully sent updates to the channel")
 		for _, v := range MessageBroker.SubM[updates.Publisher.Channel] {
 			go func() {
-				defer wg.Done()
-				MessageBroker.Lock()
-				defer MessageBroker.Unlock()
+				//defer wg.Done()
+				//MessageBroker.Lock()
+				//defer MessageBroker.Unlock()
 				log.Print("sending notification")
 				//Call another route to notify publisher
 				reqBody, err := json.Marshal(updates.Update)
@@ -250,9 +250,9 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 				}
 				log.Printf("%+v \n", *request)
 				client.Do(request)
-				wg.Wait()
+				//wg.Wait()
 			}()
-			wg.Wait()
+			//wg.Wait()
 
 		}
 	}
