@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/vatsal278/msgbroker/internal/constants"
 	"github.com/vatsal278/msgbroker/internal/model"
@@ -72,15 +73,26 @@ func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		x := MessageBroker.PubM[publisher.Channel]
+		x, ok := MessageBroker.PubM[publisher.Channel]
+
+		//
+
+		//
+
+		//
+		if !ok {
+			x = make(map[string]struct{})
+			x[publisher.Channel] = publisher
+			MessageBroker.PubM[publisher.Channel] = x
+		}
 		MessageBroker.PubM[publisher.Channel] = x
 
 		w.WriteHeader(http.StatusCreated)
-		err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Successfully Subscribed to the channel", nil))
+		err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Successfully Registered as publisher to the channel", nil))
 		if err != nil {
 			log.Println(err.Error())
 		}
-		log.Print("Successfully Subscribed to the channel")
+		log.Print("Successfully Registered as publisher to the channel")
 	}
 }
 
@@ -202,58 +214,50 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 		}
 		var wg sync.WaitGroup
 		wg.Add(1)
-		go func(p model.Publisher) {
-			defer wg.Done()
-			MessageBroker.Lock()
-			defer MessageBroker.Unlock()
-			pubm := MessageBroker.PubM[p.Channel]
-			pubs := pubm[updates.Publisher.Name]
 
-			for _, v := range pubm {
-				if reflect.DeepEqual(v, pubs) {
-					err = json.NewEncoder(w).Encode(Response_Writer(http.StatusNotFound, "No publisher found with the specified name for specified channel", nil))
-					if err != nil {
-						log.Println(err.Error())
-					}
-					return
-				}
+		pubm := MessageBroker.PubM[updates.Publisher.Channel]
+		_, ok := pubm[updates.Publisher.Name]
+		if !ok {
+			err = json.NewEncoder(w).Encode(Response_Writer(http.StatusNotFound, "No publisher found with the specified name for specified channel", nil))
+			if err != nil {
+				log.Println(err.Error())
 			}
-		}(updates.Publisher)
-		wg.Wait()
-		//ChannelUpdates = append(ChannelUpdates, updates)
-		w.WriteHeader(http.StatusCreated)
-
-		err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Successfully sent updates to the channel", nil))
-		if err != nil {
-			log.Println(err.Error())
+			return
 		}
-		log.Print("Successfully sent updates to the channel")
+
+		//ChannelUpdates = append(ChannelUpdates, updates
+
 		for _, v := range MessageBroker.SubM[updates.Publisher.Channel] {
-			go func() {
-				//defer wg.Done()
-				//MessageBroker.Lock()
-				//defer MessageBroker.Unlock()
+			go func(v model.Subscriber) {
+				MessageBroker.Lock()
+				defer MessageBroker.Unlock()
 				log.Print("sending notification")
 				//Call another route to notify publisher
-				reqBody, err := json.Marshal(updates.Update)
-				if err != nil {
-					log.Println(err.Error())
+				reqBody := []byte(updates.Update)
+
+				timeout := time.Duration(2 * time.Second)
+				client := http.Client{
+					Timeout: timeout,
 				}
-				//timeout := time.Duration(2 * time.Second)
-				client := http.DefaultClient
 				method := v.CallBack.HttpMethod
 				url := v.CallBack.CallbackUrl
 				request, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
-				request.Header.Set("Content-Type", "application/json")
 				if err != nil {
 					log.Println(err.Error())
+					return
 				}
+				request.Header.Set("Content-Type", "application/json")
 				log.Printf("%+v \n", *request)
 				client.Do(request)
 				//wg.Wait()
-			}()
-			//wg.Wait()
+				//log.Print("sent updates to the channel")
+			}(v)
 
+		}
+		w.WriteHeader(http.StatusCreated)
+		err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Sending notification", nil))
+		if err != nil {
+			log.Println(err.Error())
 		}
 	}
 }
