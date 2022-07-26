@@ -20,17 +20,10 @@ var MessageBroker = model.MessageBroker{
 	PubM: PublisherMap,
 }
 
-type IController interface {
-	RegisterPublisher() func(w http.ResponseWriter, r *http.Request)
-	RegisterSubscriber() func(w http.ResponseWriter, r *http.Request)
-	PublishMessage() func(w http.ResponseWriter, r *http.Request)
-}
-
 func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var publisher model.Publisher
 		w.Header().Set("Content-Type", "application/json")
-		//Read body of the request
 		parser.ParseResponse(r.Body, publisher)
 		x, ok := MessageBroker.PubM[publisher.Channel]
 		if !ok {
@@ -97,13 +90,8 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		//ChannelUpdates = append(ChannelUpdates, updates
-
 		for _, v := range MessageBroker.SubM[updates.Publisher.Channel] {
 			go func(v model.Subscriber) {
-
-				log.Print("notifying all subscriber")
-				//Call another route to notify publisher
 				reqBody := []byte(updates.Update)
 
 				timeout := time.Duration(2 * time.Second)
@@ -124,7 +112,7 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 
 		}
 		w.WriteHeader(http.StatusOK)
-		err := json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusOK, "Sending notification", nil))
+		err := json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusOK, "notifyied all subscriber", nil))
 		if err != nil {
 			log.Println(err.Error())
 		}
