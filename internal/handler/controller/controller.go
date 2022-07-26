@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"reflect"
-	"sync"
 	"time"
 
 	"github.com/vatsal278/msgbroker/internal/constants"
@@ -74,16 +73,9 @@ func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		x, ok := MessageBroker.PubM[publisher.Channel]
-
-		//
-
-		//
-
-		//
 		if !ok {
 			x = make(map[string]struct{})
-			x[publisher.Channel] = publisher
-			MessageBroker.PubM[publisher.Channel] = x
+			x[publisher.Name] = struct{}{}
 		}
 		MessageBroker.PubM[publisher.Channel] = x
 
@@ -138,36 +130,28 @@ func RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		var wg sync.WaitGroup
-		wg.Add(1)
 		go func(s model.Subscriber) {
-			defer wg.Done()
 			MessageBroker.Lock()
 			defer MessageBroker.Unlock()
 			subs := MessageBroker.SubM[s.Channel]
 
 			for _, v := range subs {
 				if reflect.DeepEqual(v, s) {
-					w.WriteHeader(http.StatusCreated)
-					err = json.NewEncoder(w).Encode(Response_Writer(http.StatusOK, "Subscriber already exists", nil))
-					if err != nil {
-						log.Println(err.Error())
-					}
-					log.Print("Subscriber already exists")
 					return
 				}
+
 			}
 			subs = append(subs, s)
+			log.Printf("subscriber added %+v", s)
 			MessageBroker.SubM[s.Channel] = subs
 
-			w.WriteHeader(http.StatusCreated)
-			err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Successfully Subscribed to the channel", nil))
-			if err != nil {
-				log.Println(err.Error())
-			}
-			log.Print("Successfully Subscribed to the channel")
 		}(subscriber)
-		wg.Wait()
+		w.WriteHeader(http.StatusCreated)
+		err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Successfully Subscribed to the channel", nil))
+		if err != nil {
+			log.Println(err.Error())
+		}
+		log.Print("Successfully Subscribed to the channel")
 	}
 }
 
@@ -212,12 +196,11 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		var wg sync.WaitGroup
-		wg.Add(1)
 
 		pubm := MessageBroker.PubM[updates.Publisher.Channel]
 		_, ok := pubm[updates.Publisher.Name]
 		if !ok {
+			w.WriteHeader(http.StatusNotFound)
 			err = json.NewEncoder(w).Encode(Response_Writer(http.StatusNotFound, "No publisher found with the specified name for specified channel", nil))
 			if err != nil {
 				log.Println(err.Error())
@@ -229,8 +212,7 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 
 		for _, v := range MessageBroker.SubM[updates.Publisher.Channel] {
 			go func(v model.Subscriber) {
-				MessageBroker.Lock()
-				defer MessageBroker.Unlock()
+
 				log.Print("sending notification")
 				//Call another route to notify publisher
 				reqBody := []byte(updates.Update)
@@ -249,55 +231,14 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 				request.Header.Set("Content-Type", "application/json")
 				log.Printf("%+v \n", *request)
 				client.Do(request)
-				//wg.Wait()
-				//log.Print("sent updates to the channel")
 			}(v)
 
 		}
-		w.WriteHeader(http.StatusCreated)
-		err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "Sending notification", nil))
+		w.WriteHeader(http.StatusOK)
+		err = json.NewEncoder(w).Encode(Response_Writer(http.StatusOK, "Sending notification", nil))
 		if err != nil {
 			log.Println(err.Error())
 		}
-	}
-}
-
-func NotifySubscriber() func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var updates model.Updates
-		w.Header().Set("Content-Type", "application/json")
-		//Read body of the request
-		body, err := ioutil.ReadAll(r.Body)
-		defer r.Body.Close()
-
-		if err != nil {
-			log.Println(err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			err := json.NewEncoder(w).Encode(Response_Writer(http.StatusInternalServerError, constants.Parse_Err, nil))
-			if err != nil {
-				log.Println(err.Error())
-			}
-
-			return
-		}
-		// parse json encoded data into structure
-		err = json.Unmarshal(body, &updates)
-		if err != nil {
-			log.Println(err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			err := json.NewEncoder(w).Encode(Response_Writer(http.StatusInternalServerError, constants.Parse_Err, nil))
-			if err != nil {
-				log.Println(err.Error())
-			}
-
-			return
-		}
-		w.WriteHeader(http.StatusCreated)
-		err = json.NewEncoder(w).Encode(Response_Writer(http.StatusCreated, "received updates on the channel", nil))
-		if err != nil {
-			log.Println(err.Error())
-		}
-		log.Print("Received updates on the channel")
 	}
 }
 
