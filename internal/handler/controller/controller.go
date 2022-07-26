@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/vatsal278/msgbroker/internal/constants"
 	"github.com/vatsal278/msgbroker/internal/model"
 	parser "github.com/vatsal278/msgbroker/internal/pkg/parser"
 )
@@ -24,7 +25,22 @@ func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var publisher model.Publisher
 		w.Header().Set("Content-Type", "application/json")
-		parser.ParseResponse(r.Body, publisher)
+		err := parser.ParseResponse(r.Body, &publisher)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			err = json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusInternalServerError, constants.Parse_Err, nil))
+			if err != nil {
+				log.Print(err.Error())
+			}
+		}
+		err = parser.ValidateRequest(&publisher)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			err := json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusBadRequest, constants.Incomplete_Data, nil))
+			if err != nil {
+				log.Println(err.Error())
+			}
+		}
 		x, ok := MessageBroker.PubM[publisher.Channel]
 		if !ok {
 			x = make(map[string]struct{})
@@ -33,7 +49,7 @@ func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 		MessageBroker.PubM[publisher.Channel] = x
 
 		w.WriteHeader(http.StatusCreated)
-		err := json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusCreated, "Successfully Registered as publisher to the channel", nil))
+		err = json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusCreated, "Successfully Registered as publisher to the channel", nil))
 		if err != nil {
 			log.Println(err.Error())
 		}
@@ -45,8 +61,22 @@ func RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var subscriber model.Subscriber
 		w.Header().Set("Content-Type", "application/json")
-		//Read body of the request
-		parser.ParseResponse(r.Body, subscriber)
+		err := parser.ParseResponse(r.Body, &subscriber)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			err = json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusInternalServerError, constants.Parse_Err, nil))
+			if err != nil {
+				log.Print(err.Error())
+			}
+		}
+		err = parser.ValidateRequest(&subscriber)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			err := json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusBadRequest, constants.Incomplete_Data, nil))
+			if err != nil {
+				log.Println(err.Error())
+			}
+		}
 
 		go func(s model.Subscriber) {
 			MessageBroker.Lock()
@@ -65,7 +95,7 @@ func RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 
 		}(subscriber)
 		w.WriteHeader(http.StatusCreated)
-		err := json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusCreated, "Successfully Subscribed to the channel", nil))
+		err = json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusCreated, "Successfully Subscribed to the channel", nil))
 		if err != nil {
 			log.Println(err.Error())
 		}
@@ -77,7 +107,22 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var updates model.Updates
 		w.Header().Set("Content-Type", "application/json")
-		parser.ParseResponse(r.Body, updates)
+		err := parser.ParseResponse(r.Body, &updates)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			err = json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusInternalServerError, constants.Parse_Err, nil))
+			if err != nil {
+				log.Print(err.Error())
+			}
+		}
+		err = parser.ValidateRequest(&updates)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			err := json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusBadRequest, constants.Incomplete_Data, nil))
+			if err != nil {
+				log.Println(err.Error())
+			}
+		}
 
 		pubm := MessageBroker.PubM[updates.Publisher.Channel]
 		_, ok := pubm[updates.Publisher.Name]
@@ -112,7 +157,7 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 
 		}
 		w.WriteHeader(http.StatusOK)
-		err := json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusOK, "notifyied all subscriber", nil))
+		err = json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusOK, "notified all subscriber", nil))
 		if err != nil {
 			log.Println(err.Error())
 		}
