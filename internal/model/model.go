@@ -1,9 +1,6 @@
 package model
 
-import (
-	"msgbroker/internal/model"
-	"sync"
-)
+import "sync"
 
 type CallBack struct {
 	HttpMethod  string
@@ -25,7 +22,7 @@ type Updates struct {
 }
 
 type MessageBroker struct {
-	PubM map[string]map[string]model.Publisher // 1st map's key is channel, 2nd map's key is publisher name
+	PubM map[string]map[string]struct{} // 1st map's key is channel, 2nd map's key is publisher name
 	SubM map[string][]Subscriber
 	sync.Mutex
 }
