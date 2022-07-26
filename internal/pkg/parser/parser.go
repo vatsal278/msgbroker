@@ -28,7 +28,7 @@ func ParseResponse(req_body io.ReadCloser, x interface{}) func(w http.ResponseWr
 
 			return
 		}
-		// parse json encoded data into structure
+		//Write body to struct
 		err = json.Unmarshal(body, &x)
 
 		if err != nil {
@@ -41,6 +41,7 @@ func ParseResponse(req_body io.ReadCloser, x interface{}) func(w http.ResponseWr
 
 			return
 		}
+		//validate the struct
 		validate := validator.New()
 		errs := validate.Struct(x)
 		if errs != nil {
