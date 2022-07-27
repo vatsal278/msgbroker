@@ -1,4 +1,4 @@
-package article_controller
+package controller
 
 import (
 	"bytes"
@@ -25,7 +25,6 @@ var MessageBroker = model.MessageBroker{
 func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var publisher model.Publisher
-		w.Header().Set("Content-Type", "application/json")
 		err := parser.ParseRequest(r.Body, &publisher)
 		if err != nil {
 			responseWriter.ResponseWriter(w, http.StatusInternalServerError, constants.Parse_Err, nil, model.Response{})
@@ -50,7 +49,6 @@ func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 func RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var subscriber model.Subscriber
-		w.Header().Set("Content-Type", "application/json")
 		err := parser.ParseRequest(r.Body, &subscriber)
 		if err != nil {
 			responseWriter.ResponseWriter(w, http.StatusInternalServerError, constants.Parse_Err, nil, model.Response{})
@@ -85,7 +83,6 @@ func RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var updates model.Updates
-		w.Header().Set("Content-Type", "application/json")
 		err := parser.ParseRequest(r.Body, &updates)
 		if err != nil {
 			responseWriter.ResponseWriter(w, http.StatusInternalServerError, constants.Parse_Err, nil, model.Response{})

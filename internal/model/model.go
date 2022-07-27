@@ -37,10 +37,3 @@ func (r *Response) Update(status int, msg string, data interface{}) {
 	r.Message = msg
 	r.Data = data
 }
-
-type Temp_struct struct {
-	Id      interface{} `json:"status"`
-	Title   interface{} `json:"message"`
-	Content interface{}
-	Author  interface{}
-}
