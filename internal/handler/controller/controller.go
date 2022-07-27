@@ -2,7 +2,6 @@ package article_controller
 
 import (
 	"bytes"
-	"encoding/json"
 	"log"
 	"net/http"
 	"reflect"
@@ -25,21 +24,15 @@ func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var publisher model.Publisher
 		w.Header().Set("Content-Type", "application/json")
-		err := parser.ParseResponse(r.Body, &publisher)
+		err := parser.ParseRequest(r.Body, &publisher)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			err = json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusInternalServerError, constants.Parse_Err, nil))
-			if err != nil {
-				log.Print(err.Error())
-			}
+			parser.Response_Writer(w, http.StatusInternalServerError, constants.Parse_Err, nil, model.Response{})
+			log.Println(err.Error())
 		}
 		err = parser.ValidateRequest(&publisher)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			err := json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusBadRequest, constants.Incomplete_Data, nil))
-			if err != nil {
-				log.Println(err.Error())
-			}
+			parser.Response_Writer(w, http.StatusBadRequest, constants.Incomplete_Data, nil, model.Response{})
+			log.Println(err.Error())
 		}
 		x, ok := MessageBroker.PubM[publisher.Channel]
 		if !ok {
@@ -47,12 +40,7 @@ func RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 			x[publisher.Name] = struct{}{}
 		}
 		MessageBroker.PubM[publisher.Channel] = x
-
-		w.WriteHeader(http.StatusCreated)
-		err = json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusCreated, "Successfully Registered as publisher to the channel", nil))
-		if err != nil {
-			log.Println(err.Error())
-		}
+		parser.Response_Writer(w, http.StatusCreated, "Successfully Registered as publisher to the channel", nil, model.Response{})
 		log.Print("Successfully Registered as publisher to the channel")
 	}
 }
@@ -61,21 +49,15 @@ func RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var subscriber model.Subscriber
 		w.Header().Set("Content-Type", "application/json")
-		err := parser.ParseResponse(r.Body, &subscriber)
+		err := parser.ParseRequest(r.Body, &subscriber)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			err = json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusInternalServerError, constants.Parse_Err, nil))
-			if err != nil {
-				log.Print(err.Error())
-			}
+			parser.Response_Writer(w, http.StatusInternalServerError, constants.Parse_Err, nil, model.Response{})
+			log.Println(err.Error())
 		}
 		err = parser.ValidateRequest(&subscriber)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			err := json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusBadRequest, constants.Incomplete_Data, nil))
-			if err != nil {
-				log.Println(err.Error())
-			}
+			parser.Response_Writer(w, http.StatusBadRequest, constants.Incomplete_Data, nil, model.Response{})
+			log.Println(err.Error())
 		}
 
 		go func(s model.Subscriber) {
@@ -87,18 +69,13 @@ func RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 				if reflect.DeepEqual(v, s) {
 					return
 				}
-
 			}
 			subs = append(subs, s)
 			log.Printf("subscriber added %+v", s)
 			MessageBroker.SubM[s.Channel] = subs
 
 		}(subscriber)
-		w.WriteHeader(http.StatusCreated)
-		err = json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusCreated, "Successfully Subscribed to the channel", nil))
-		if err != nil {
-			log.Println(err.Error())
-		}
+		parser.Response_Writer(w, http.StatusCreated, "Successfully Registered as publisher to the channel", nil, model.Response{})
 		log.Print("Successfully Subscribed to the channel")
 	}
 }
@@ -107,31 +84,22 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var updates model.Updates
 		w.Header().Set("Content-Type", "application/json")
-		err := parser.ParseResponse(r.Body, &updates)
+		err := parser.ParseRequest(r.Body, &updates)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			err = json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusInternalServerError, constants.Parse_Err, nil))
-			if err != nil {
-				log.Print(err.Error())
-			}
+			parser.Response_Writer(w, http.StatusInternalServerError, constants.Parse_Err, nil, model.Response{})
+			log.Println(err.Error())
 		}
 		err = parser.ValidateRequest(&updates)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			err := json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusBadRequest, constants.Incomplete_Data, nil))
-			if err != nil {
-				log.Println(err.Error())
-			}
+			parser.Response_Writer(w, http.StatusBadRequest, constants.Incomplete_Data, nil, model.Response{})
+			log.Println(err.Error())
 		}
 
 		pubm := MessageBroker.PubM[updates.Publisher.Channel]
 		_, ok := pubm[updates.Publisher.Name]
 		if !ok {
-			w.WriteHeader(http.StatusNotFound)
-			err := json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusNotFound, "No publisher found with the specified name for specified channel", nil))
-			if err != nil {
-				log.Println(err.Error())
-			}
+			parser.Response_Writer(w, http.StatusNotFound, "No publisher found with the specified name for specified channel", nil, model.Response{})
+			log.Println("No publisher found with the specified name for specified channel")
 			return
 		}
 
@@ -156,10 +124,7 @@ func PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 			}(v)
 
 		}
-		w.WriteHeader(http.StatusOK)
-		err = json.NewEncoder(w).Encode(parser.Response_Writer(http.StatusOK, "notified all subscriber", nil))
-		if err != nil {
-			log.Println(err.Error())
-		}
+		parser.Response_Writer(w, http.StatusOK, "notified all subscriber", nil, model.Response{})
+		log.Println("notified all subscriber")
 	}
 }
