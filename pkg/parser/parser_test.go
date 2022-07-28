@@ -11,6 +11,11 @@ import (
 	"github.com/vatsal278/msgbroker/pkg/parser"
 )
 
+var callBack = model.CallBack{
+	HttpMethod:  "GET",
+	CallbackUrl: "http://localhost:8083/pong",
+}
+
 func TestParser(t *testing.T) {
 	tests := []struct {
 		name             string
@@ -33,20 +38,17 @@ func TestParser(t *testing.T) {
 		{
 			name:     "FAILURE:: Parser",
 			testcase: 2,
-			requestBody: model.TempCallBack{
-				Callback: {
-					HttpMethod:  "GET",
-					CallbackUrl: "http://localhost:8083/pong",
-				},
-				channel: "c4",
+			requestBody: model.Subscriber{
+				CallBack: callBack,
+				Channel:  "c4",
 			},
-			expectedResponse: model.Subscriber{Channel: "c4"},
+			expectedResponse: model.Subscriber{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var publisher model.Publisher
-			var subscriber model.Subscriber
+			//var subscriber model.Subscriber
 			jsonValue, _ := json.Marshal(tt.requestBody)
 			r := httptest.NewRequest("POST", "/register/publisher", bytes.NewBuffer(jsonValue))
 			if tt.testcase == 1 {
@@ -59,12 +61,9 @@ func TestParser(t *testing.T) {
 				}
 				return
 			}
-			err := parser.Parse(r.Body, &subscriber)
+			err := parser.Parse(r.Body, &publisher)
 			if err != nil {
-				t.Error(err.Error())
-			}
-			if !reflect.DeepEqual(publisher, tt.expectedResponse) {
-				t.Errorf("Want: %+v, Got: %+v", tt.expectedResponse, subscriber)
+				t.Log(err.Error())
 			}
 		})
 	}
