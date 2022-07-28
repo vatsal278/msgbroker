@@ -32,7 +32,7 @@ func (m *models) RegisterPublisher() func(w http.ResponseWriter, r *http.Request
 		var publisher model.Publisher
 		err := parser.ParseAndValidateRequest(r.Body, &publisher)
 		if err != nil {
-			responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.Incomplete_Data, nil, &model.Response{})
+			responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.IncompleteData, nil, &model.Response{})
 			log.Println(err.Error())
 			return
 		}
@@ -53,7 +53,7 @@ func (m *models) RegisterSubscriber() func(w http.ResponseWriter, r *http.Reques
 		var subscriber model.Subscriber
 		err := parser.ParseAndValidateRequest(r.Body, &subscriber)
 		if err != nil {
-			responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.Incomplete_Data, nil, &model.Response{})
+			responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.IncompleteData, nil, &model.Response{})
 			log.Println(err.Error())
 			return
 		}
@@ -83,7 +83,7 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 		var updates model.Updates
 		err := parser.ParseAndValidateRequest(r.Body, &updates)
 		if err != nil {
-			responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.Incomplete_Data, nil, &model.Response{})
+			responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.IncompleteData, nil, &model.Response{})
 			log.Println(err.Error())
 			return
 		}
