@@ -13,45 +13,59 @@ import (
 
 func TestParser(t *testing.T) {
 	tests := []struct {
-		name              string
+		name             string
 		requestBody      interface{}
-		setupVariable
+		testcase         int
 		expectedResponse interface{}
 	}{
 		{
-			name:"SUCCESS:: Parser",
-			requestBody: &model.Publisher{
+			name: "SUCCESS:: Parser",
+			requestBody: model.Publisher{
 				Name:    "publisher1",
 				Channel: "c4",
 			},
-			expectedResponse: &model.Publisher{
+			testcase: 1,
+			expectedResponse: model.Publisher{
 				Name:    "publisher1",
 				Channel: "c4",
 			},
 		},
 		{
-			name: "FAILURE:: Parser",
-		}
+			name:     "FAILURE:: Parser",
+			testcase: 2,
+			requestBody: model.TempCallBack{
+				Callback: {
+					HttpMethod:  "GET",
+					CallbackUrl: "http://localhost:8083/pong",
+				},
+				channel: "c4",
+			},
+			expectedResponse: model.Subscriber{Channel: "c4"},
+		},
 	}
 	for _, tt := range tests {
-		t.Run("test", func(t *testing.T) {
-			//errorCase = tt.ErrorCase
+		t.Run(tt.name, func(t *testing.T) {
 			var publisher model.Publisher
-			//w := httptest.NewRecorder()
-			//t.Log(w.Code)
-
-			var testPub = &model.Publisher{
-				Name:    "publisher1",
-				Channel: "c4",
-			}
-			jsonValue, _ := json.Marshal(testPub)
+			var subscriber model.Subscriber
+			jsonValue, _ := json.Marshal(tt.requestBody)
 			r := httptest.NewRequest("POST", "/register/publisher", bytes.NewBuffer(jsonValue))
-
-			parser.Parse(r.Body, &publisher)
-			if !reflect.DeepEqual(&publisher, testPub) {
-				t.Errorf("Want: %v, Got: %v", testPub, &publisher)
+			if tt.testcase == 1 {
+				err := parser.Parse(r.Body, &publisher)
+				if err != nil {
+					t.Error(err.Error())
+				}
+				if !reflect.DeepEqual(publisher, tt.expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", tt.expectedResponse, publisher)
+				}
+				return
 			}
-
+			err := parser.Parse(r.Body, &subscriber)
+			if err != nil {
+				t.Error(err.Error())
+			}
+			if !reflect.DeepEqual(publisher, tt.expectedResponse) {
+				t.Errorf("Want: %+v, Got: %+v", tt.expectedResponse, subscriber)
+			}
 		})
-
+	}
 }

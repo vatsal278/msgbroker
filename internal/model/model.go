@@ -3,8 +3,12 @@ package model
 import "sync"
 
 type CallBack struct {
-	HttpMethod  string
-	CallbackUrl string
+	HttpMethod  string `validate:"required"`
+	CallbackUrl string `validate:"required"`
+}
+type TempPublisher struct {
+	Name    interface{} `validate:"required"`
+	Channel string      `form:"channel" json:"channel" validate:"required"`
 }
 type Subscriber struct {
 	CallBack CallBack
@@ -28,6 +32,11 @@ type MessageBroker struct {
 }
 type Response struct {
 	Status  int    `json:"status"`
+	Message string `json:"message"`
+	Data    interface{}
+}
+type TempResponse struct {
+	Status  string `json:"status"`
 	Message string `json:"message"`
 	Data    interface{}
 }
