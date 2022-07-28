@@ -7,56 +7,61 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/vatsal278/msgbroker/internal/constants"
 	controllerInterface "github.com/vatsal278/msgbroker/internal/handler"
 	"github.com/vatsal278/msgbroker/internal/model"
 	parser "github.com/vatsal278/msgbroker/internal/pkg/parser"
 	"github.com/vatsal278/msgbroker/pkg/responseWriter"
 )
 
-type Models struct {
-	publisher  model.Publisher
-	subscriber model.Subscriber
-	updates    model.Updates
-}
-
-var SubscriberMap = map[string][]model.Subscriber{}
-var PublisherMap = map[string]map[string]struct{}{}
-
-var MessageBroker = model.MessageBroker{
-	SubM: SubscriberMap,
-	PubM: PublisherMap,
+type models struct {
+	messageBroker model.MessageBroker
 }
 
 func NewController() controllerInterface.IController {
-	return &Models{
-		publisher:  model.Publisher{},
-		subscriber: model.Subscriber{},
-		updates:    model.Updates{},
+	return &models{
+		messageBroker: model.MessageBroker{
+			SubM: map[string][]model.Subscriber{},
+			PubM: map[string]map[string]struct{}{},
+		},
 	}
 }
 
-func (m Models) RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
+func (m *models) RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parser.Parse(w, r.Body, m.publisher)
-		x, ok := MessageBroker.PubM[m.publisher.Channel]
+		var publisher model.Publisher
+		err := parser.ParseAndValidateRequest(r.Body, &publisher)
+		if err != nil {
+			responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.Incomplete_Data, nil, &model.Response{})
+			log.Println(err.Error())
+			return
+		}
+
+		x, ok := m.messageBroker.PubM[publisher.Channel]
 		if !ok {
 			x = make(map[string]struct{})
-			x[m.publisher.Name] = struct{}{}
+			x[publisher.Name] = struct{}{}
 		}
-		MessageBroker.PubM[m.publisher.Channel] = x
+		m.messageBroker.PubM[publisher.Channel] = x
 		responseWriter.ResponseWriter(w, http.StatusCreated, "Successfully Registered as publisher to the channel", nil, &model.Response{})
 		log.Print("Successfully Registered as publisher to the channel")
 	}
 }
 
-func (m Models) RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
+func (m *models) RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parser.Parse(w, r.Body, m.publisher)
+		var subscriber model.Subscriber
+		err := parser.ParseAndValidateRequest(r.Body, &subscriber)
+		if err != nil {
+			responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.Incomplete_Data, nil, &model.Response{})
+			log.Println(err.Error())
+			return
+		}
 
 		go func(s model.Subscriber) {
-			MessageBroker.Lock()
-			defer MessageBroker.Unlock()
-			subs := MessageBroker.SubM[s.Channel]
+			m.messageBroker.Lock()
+			defer m.messageBroker.Unlock()
+			subs := m.messageBroker.SubM[s.Channel]
 
 			for _, v := range subs {
 				if reflect.DeepEqual(v, s) {
@@ -65,29 +70,35 @@ func (m Models) RegisterSubscriber() func(w http.ResponseWriter, r *http.Request
 			}
 			subs = append(subs, s)
 			log.Printf("subscriber added %+v", s)
-			MessageBroker.SubM[s.Channel] = subs
+			m.messageBroker.SubM[s.Channel] = subs
 
-		}(m.subscriber)
+		}(subscriber)
 		responseWriter.ResponseWriter(w, http.StatusCreated, "Successfully Registered as publisher to the channel", nil, &model.Response{})
 		log.Print("Successfully Subscribed to the channel")
 	}
 }
 
-func (m Models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
+func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parser.Parse(w, r.Body, m.publisher)
+		var updates model.Updates
+		err := parser.ParseAndValidateRequest(r.Body, &updates)
+		if err != nil {
+			responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.Incomplete_Data, nil, &model.Response{})
+			log.Println(err.Error())
+			return
+		}
 
-		pubm := MessageBroker.PubM[m.updates.Publisher.Channel]
-		_, ok := pubm[m.updates.Publisher.Name]
+		pubm := m.messageBroker.PubM[updates.Publisher.Channel]
+		_, ok := pubm[updates.Publisher.Name]
 		if !ok {
 			responseWriter.ResponseWriter(w, http.StatusNotFound, "No publisher found with the specified name for specified channel", nil, &model.Response{})
 			log.Println("No publisher found with the specified name for specified channel")
 			return
 		}
 
-		for _, v := range MessageBroker.SubM[m.updates.Publisher.Channel] {
+		for _, v := range m.messageBroker.SubM[updates.Publisher.Channel] {
 			go func(v model.Subscriber) {
-				reqBody := []byte(m.updates.Update)
+				reqBody := []byte(updates.Update)
 
 				timeout := time.Duration(2 * time.Second)
 				client := http.Client{
@@ -108,5 +119,12 @@ func (m Models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 		}
 		responseWriter.ResponseWriter(w, http.StatusOK, "notified all subscriber", nil, &model.Response{})
 		log.Println("notified all subscriber")
+	}
+}
+func (m *models) NoRouteFound() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		responseWriter.ResponseWriter(w, http.StatusNotFound, "no route found", nil, &model.Response{})
+		log.Print("No Route Found")
 	}
 }

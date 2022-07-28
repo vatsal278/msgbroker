@@ -13,6 +13,7 @@ func Router() *mux.Router {
 	i := controller.NewController()
 
 	router := mux.NewRouter()
+	router.NotFoundHandler = http.HandlerFunc(i.NoRouteFound())
 	router.HandleFunc("/register/subscriber", i.RegisterSubscriber()).Methods(http.MethodPost) //Endpoint for inserting
 	router.HandleFunc("/register/publisher", i.RegisterPublisher()).Methods(http.MethodPost)
 	router.HandleFunc("/publish", i.PublishMessage()).Methods(http.MethodPost)
