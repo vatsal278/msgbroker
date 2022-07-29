@@ -73,7 +73,7 @@ func (m *models) RegisterSubscriber() func(w http.ResponseWriter, r *http.Reques
 			m.messageBroker.SubM[s.Channel] = subs
 
 		}(subscriber)
-		responseWriter.ResponseWriter(w, http.StatusCreated, "Successfully Registered as publisher to the channel", nil, &model.Response{})
+		responseWriter.ResponseWriter(w, http.StatusCreated, "Successfully Registered as Subscriber to the channel", nil, &model.Response{})
 		log.Print("Successfully Subscribed to the channel")
 	}
 }

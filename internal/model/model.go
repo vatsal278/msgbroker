@@ -17,7 +17,7 @@ type Subscriber struct {
 }
 type TempSubscriber struct {
 	CallBack CallBack
-	Channel  string `form:"channel" json:"channel" validate:"required"`
+	Channel  int `form:"channel" json:"channel" validate:"required"`
 }
 
 type Publisher struct {
@@ -28,6 +28,10 @@ type Publisher struct {
 type Updates struct {
 	Publisher Publisher `form:"publisher" json:"publisher" validate:"required"`
 	Update    string    `form:"update" json:"update" validate:"required"`
+}
+type TempUpdates struct {
+	Publisher TempPublisher `form:"publisher" json:"publisher" validate:"required"`
+	Update    int           `form:"update" json:"update" validate:"required"`
 }
 
 type MessageBroker struct {
