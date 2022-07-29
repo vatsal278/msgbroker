@@ -29,7 +29,7 @@ func TestResponseWriter(t *testing.T) {
 			name:     "FAILURE:: validate",
 			testcase: 2,
 			setupFunc: func(w *httptest.ResponseRecorder) error {
-				err := responseWriter.ResponseWriter(w, http.StatusOK, "Successfully Registered as publisher to the channel", nil, &model.TempResponse{})
+				err := responseWriter.ResponseWriter(w, http.StatusOK, "Successfully Registered as publisher to the channel", nil, &model.Response{})
 				return err
 			},
 			ExpectedStatusCode: http.StatusBadRequest,

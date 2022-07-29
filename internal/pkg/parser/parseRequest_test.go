@@ -38,17 +38,6 @@ func TestParseRequest(t *testing.T) {
 			},
 		},
 		{
-			name:     "FAILURE:: Parser function",
-			testcase: 2,
-			requestBody: model.Subscriber{
-				CallBack: callBack,
-				Channel:  "c4",
-			},
-			expectedResponse: model.Publisher{
-				Channel: "c4",
-			},
-		},
-		{
 			name:     "FAILURE:: validate function",
 			testcase: 2,
 			requestBody: model.TempPublisher{
@@ -79,26 +68,10 @@ func TestParseRequest(t *testing.T) {
 					t.Errorf("Want: %v, Got: %v", tt.expectedResponse, publisher)
 				}
 				return
-			} else if tt.testcase == 2 {
-				err := parser.Parse(r.Body, &publisher)
-
-				if err != nil {
-					t.Log(err.Error())
-				} else {
-					t.Errorf("Want: %v, Got: %v", "error", err.Error())
-				}
-				err = validate.Validate(publisher)
-				if err != nil {
-					t.Log(err.Error())
-				}
-				return
 			}
 			err := parser.Parse(r.Body, &publisher)
-
 			if err != nil {
 				t.Log(err.Error())
-			} else {
-				t.Errorf("Want: %v, Got: %v", "error", err.Error())
 			}
 			err = validate.Validate(publisher)
 
