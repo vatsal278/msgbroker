@@ -16,6 +16,15 @@ var callBack = model.CallBack{
 	CallbackUrl: "http://localhost:8083/pong",
 }
 
+type testStruct struct {
+	Name    string
+	Channel string
+}
+type testStructFail struct {
+	Name    int
+	Channel int
+}
+
 func TestParser(t *testing.T) {
 	tests := []struct {
 		name             string
@@ -25,12 +34,12 @@ func TestParser(t *testing.T) {
 	}{
 		{
 			name: "SUCCESS:: Parser",
-			requestBody: model.Publisher{
+			requestBody: testStruct{
 				Name:    "publisher1",
 				Channel: "c4",
 			},
 			testcase: 1,
-			expectedResponse: model.Publisher{
+			expectedResponse: testStruct{
 				Name:    "publisher1",
 				Channel: "c4",
 			},
@@ -38,37 +47,39 @@ func TestParser(t *testing.T) {
 		{
 			name:     "FAILURE:: Parser",
 			testcase: 2,
-			requestBody: model.Subscriber{
-				CallBack: callBack,
+			requestBody: testStruct{
+				Name:    "publisher1",
+				Channel: "c4",
 			},
-			expectedResponse: model.Publisher{},
+			expectedResponse: testStructFail{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var publisher model.Publisher
+			var teststruct testStruct
+			var teststructfail testStructFail
 			//var subscriber model.Subscriber
 			jsonValue, _ := json.Marshal(tt.requestBody)
 			r := httptest.NewRequest("POST", "/register/publisher", bytes.NewBuffer(jsonValue))
+			bytes.NewReader(jsonValue)
 			if tt.testcase == 1 {
-				err := parser.Parse(r.Body, &publisher)
+				err := parser.Parse(r.Body, &teststruct)
 				if err != nil {
 					t.Errorf("Want: %v, Got: %v", nil, err.Error())
 				}
-				if !reflect.DeepEqual(publisher, tt.expectedResponse) {
-					t.Errorf("Want: %v, Got: %v", tt.expectedResponse, &publisher)
+				if !reflect.DeepEqual(teststruct, tt.expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", tt.expectedResponse, &teststruct)
 				}
 				return
 			}
-			err := parser.Parse(r.Body, &publisher)
+			err := parser.Parse(r.Body, &teststructfail)
 			if err != nil {
 				t.Log(err.Error())
 			} else {
 				t.Errorf("Want: %v, Got: %v", "error", nil)
 			}
-			t.Errorf(publisher.Name)
-			if !reflect.DeepEqual(publisher, tt.expectedResponse) {
-				t.Errorf("Want: %v, Got: %v", tt.expectedResponse, publisher)
+			if !reflect.DeepEqual(teststructfail, tt.expectedResponse) {
+				t.Errorf("Want: %v, Got: %v", tt.expectedResponse, teststructfail)
 			}
 		})
 	}
