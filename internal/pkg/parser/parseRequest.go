@@ -1,4 +1,4 @@
-package parser
+package parseRequest
 
 import (
 	"io"

@@ -6,11 +6,16 @@ type CallBack struct {
 	HttpMethod  string `validate:"required"`
 	CallbackUrl string `validate:"required"`
 }
+
 type TempPublisher struct {
 	Name    interface{} `validate:"required"`
 	Channel string      `form:"channel" json:"channel" validate:"required"`
 }
 type Subscriber struct {
+	CallBack CallBack
+	Channel  string `form:"channel" json:"channel" validate:"required"`
+}
+type TempSubscriber struct {
 	CallBack CallBack
 	Channel  string `form:"channel" json:"channel" validate:"required"`
 }

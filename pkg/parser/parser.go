@@ -16,7 +16,6 @@ func Parse(reqbody io.ReadCloser, x interface{}) error {
 	}
 	//Write body to struct
 	err = json.Unmarshal(body, &x)
-
 	if err != nil {
 		return err
 	}

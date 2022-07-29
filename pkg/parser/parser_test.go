@@ -40,9 +40,8 @@ func TestParser(t *testing.T) {
 			testcase: 2,
 			requestBody: model.Subscriber{
 				CallBack: callBack,
-				Channel:  "c4",
 			},
-			expectedResponse: model.Subscriber{},
+			expectedResponse: model.Publisher{},
 		},
 	}
 	for _, tt := range tests {
@@ -54,16 +53,22 @@ func TestParser(t *testing.T) {
 			if tt.testcase == 1 {
 				err := parser.Parse(r.Body, &publisher)
 				if err != nil {
-					t.Error(err.Error())
+					t.Errorf("Want: %v, Got: %v", nil, err.Error())
 				}
 				if !reflect.DeepEqual(publisher, tt.expectedResponse) {
-					t.Errorf("Want: %v, Got: %v", tt.expectedResponse, publisher)
+					t.Errorf("Want: %v, Got: %v", tt.expectedResponse, &publisher)
 				}
 				return
 			}
 			err := parser.Parse(r.Body, &publisher)
 			if err != nil {
 				t.Log(err.Error())
+			} else {
+				t.Errorf("Want: %v, Got: %v", "error", nil)
+			}
+			t.Errorf(publisher.Name)
+			if !reflect.DeepEqual(publisher, tt.expectedResponse) {
+				t.Errorf("Want: %v, Got: %v", tt.expectedResponse, publisher)
 			}
 		})
 	}
