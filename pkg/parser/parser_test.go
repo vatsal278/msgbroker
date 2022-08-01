@@ -3,6 +3,7 @@ package parser_test
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
@@ -29,7 +30,7 @@ func TestParser(t *testing.T) {
 	tests := []struct {
 		name             string
 		requestBody      interface{}
-		testcase         int
+		setupFunc        func(r *http.Request)
 		expectedResponse interface{}
 	}{
 		{
@@ -38,49 +39,52 @@ func TestParser(t *testing.T) {
 				Name:    "publisher1",
 				Channel: "c4",
 			},
-			testcase: 1,
-			expectedResponse: testStruct{
-				Name:    "publisher1",
-				Channel: "c4",
+			setupFunc: func(r *http.Request) {
+				var teststruct testStruct
+				err := parser.Parse(r.Body, &teststruct)
+				expectedResponse := testStruct{
+					Name:    "publisher1",
+					Channel: "c4",
+				}
+				if err != nil {
+					t.Errorf("Want: %v, Got: %v", nil, err.Error())
+				}
+				if !reflect.DeepEqual(teststruct, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, &teststruct)
+				}
 			},
 		},
 		{
-			name:     "FAILURE:: Parser",
-			testcase: 2,
+			name: "FAILURE:: Parser",
 			requestBody: testStruct{
 				Name:    "publisher1",
 				Channel: "c4",
+			},
+			setupFunc: func(r *http.Request) {
+				var teststructfail testStructFail
+				err := parser.Parse(r.Body, &teststructfail)
+				expectedResponse := testStructFail{}
+				if err != nil {
+					t.Log(err.Error())
+				} else {
+					t.Errorf("Want: %v, Got: %v", "error", nil)
+				}
+				if !reflect.DeepEqual(teststructfail, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, teststructfail)
+				}
 			},
 			expectedResponse: testStructFail{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var teststruct testStruct
-			var teststructfail testStructFail
+
 			//var subscriber model.Subscriber
 			jsonValue, _ := json.Marshal(tt.requestBody)
 			r := httptest.NewRequest("POST", "/register/publisher", bytes.NewBuffer(jsonValue))
-			bytes.NewReader(jsonValue)
-			if tt.testcase == 1 {
-				err := parser.Parse(r.Body, &teststruct)
-				if err != nil {
-					t.Errorf("Want: %v, Got: %v", nil, err.Error())
-				}
-				if !reflect.DeepEqual(teststruct, tt.expectedResponse) {
-					t.Errorf("Want: %v, Got: %v", tt.expectedResponse, &teststruct)
-				}
-				return
-			}
-			err := parser.Parse(r.Body, &teststructfail)
-			if err != nil {
-				t.Log(err.Error())
-			} else {
-				t.Errorf("Want: %v, Got: %v", "error", nil)
-			}
-			if !reflect.DeepEqual(teststructfail, tt.expectedResponse) {
-				t.Errorf("Want: %v, Got: %v", tt.expectedResponse, teststructfail)
-			}
+			//bytes.NewReader(jsonValue)
+			tt.setupFunc(r)
+
 		})
 	}
 }

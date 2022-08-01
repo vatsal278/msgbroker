@@ -179,6 +179,7 @@ func TestPublishMessage(t *testing.T) {
 			setupFunc: func(i controllerInterface.IController) {
 				w := httptest.NewRecorder()
 				jsonValue, _ := json.Marshal(publisher)
+				//directly add publisher and subscriber using type assertion
 				r := httptest.NewRequest("POST", "/register/publisher", bytes.NewBuffer(jsonValue))
 				RegisterPub := i.RegisterPublisher()
 				RegisterPub(w, r)
@@ -229,6 +230,7 @@ func TestPublishMessage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			//golang http test server
 			i := NewController()
 			tt.setupFunc(i)
 			w := httptest.NewRecorder()
@@ -252,3 +254,5 @@ func TestPublishMessage(t *testing.T) {
 		})
 	}
 }
+
+//nO route test case

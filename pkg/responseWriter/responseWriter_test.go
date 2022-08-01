@@ -1,4 +1,4 @@
-package responseWriter_test
+package responseWriter
 
 import (
 	"net/http"
@@ -10,13 +10,28 @@ import (
 )
 
 func TestResponseWriter(t *testing.T) {
-	t.Run("TestValidate", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		//r := httptest.
-		_ = responseWriter.ResponseWriter(w, http.StatusOK, "Successfully Registered as publisher to the channel", nil, &model.Response{})
-		if w.Code != http.StatusOK {
-			t.Errorf("Want: %v, Got: %v", http.StatusOK, w.Code)
-		}
-	},
-	)
+	tests := []struct {
+		name             string
+		expectedResponse interface{}
+	}{
+		{
+			name:             "SUCCESS:: ParseRequest",
+			expectedResponse: http.StatusOK,
+		},
+	}
+	for _, tt := range tests {
+		t.Run("TestValidate", func(t *testing.T) {
+			w := httptest.NewRecorder()
+			//r := httptest.
+			//Mock the interface and use them inside it
+			err := responseWriter.ResponseWriter(w, http.StatusOK, "Successfully Registered as publisher to the channel", nil, &model.Response{})
+			if err != nil {
+				t.Errorf("Want: %v, Got: %v", nil, err.Error())
+			}
+			if w.Code != http.StatusOK {
+				t.Errorf("Want: %v, Got: %v", tt.expectedResponse, w.Code)
+			}
+		},
+		)
+	}
 }

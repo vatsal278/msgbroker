@@ -1,9 +1,10 @@
-package parseRequest_test
+package parseRequest
 
 import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
@@ -18,11 +19,16 @@ var callBack = model.CallBack{
 	CallbackUrl: "http://localhost:8083/pong",
 }
 
+type testStruct struct {
+	Name    string
+	Channel string
+}
+
 func TestParseRequest(t *testing.T) {
 	tests := []struct {
 		name             string
 		requestBody      interface{}
-		testcase         int
+		setupFunc        func(r *http.Request, publisher model.Publisher)
 		expectedResponse interface{}
 	}{
 		{
@@ -31,31 +37,11 @@ func TestParseRequest(t *testing.T) {
 				Name:    "publisher1",
 				Channel: "c4",
 			},
-			testcase: 1,
-			expectedResponse: model.Publisher{
-				Name:    "publisher1",
-				Channel: "c4",
-			},
-		},
-		{
-			name:     "FAILURE:: validate function",
-			testcase: 2,
-			requestBody: model.TempPublisher{
-				Name:    2,
-				Channel: "c4",
-			},
-			expectedResponse: model.Publisher{
-				Channel: "c4",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var publisher model.Publisher
-			//var subscriber model.Subscriber
-			jsonValue, _ := json.Marshal(tt.requestBody)
-			r := httptest.NewRequest("POST", "/register/publisher", bytes.NewBuffer(jsonValue))
-			if tt.testcase == 1 {
+			setupFunc: func(r *http.Request, publisher model.Publisher) {
+				var expectedResponse = model.Publisher{
+					Name:    "publisher1",
+					Channel: "c4",
+				}
 				err := parser.Parse(r.Body, &publisher)
 				if err != nil {
 					t.Errorf("Want: %v, Got: %v", nil, err.Error())
@@ -64,22 +50,72 @@ func TestParseRequest(t *testing.T) {
 				if err != nil {
 					t.Errorf("Want: %v, Got: %v", nil, err.Error())
 				}
-				if !reflect.DeepEqual(publisher, tt.expectedResponse) {
-					t.Errorf("Want: %v, Got: %v", tt.expectedResponse, publisher)
+				if !reflect.DeepEqual(publisher, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, publisher)
 				}
-				return
-			}
-			err := parser.Parse(r.Body, &publisher)
-			if err != nil {
-				t.Log(err.Error())
-			}
-			err = validate.Validate(publisher)
+			},
+			expectedResponse: model.Publisher{
+				Name:    "publisher1",
+				Channel: "c4",
+			},
+		},
+		{
+			name: "FAILURE:: Parse",
+			requestBody: testStruct{
+				Name:    "publisher1",
+				Channel: "c4",
+			},
+			setupFunc: func(r *http.Request, publisher model.Publisher) {
+				var teststruct testStruct
+				err := parser.Parse(r.Body, &teststruct)
+				expectedResponse := testStruct{
+					Name:    "publisher1",
+					Channel: "c4",
+				}
+				if err != nil {
+					t.Errorf("Want: %v, Got: %v", nil, err.Error())
+				}
+				if !reflect.DeepEqual(teststruct, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, &teststruct)
+				}
+			},
+			expectedResponse: model.Publisher{
+				Name:    "publisher1",
+				Channel: "c4",
+			},
+		},
+		{
+			name: "FAILURE:: validate function",
+			requestBody: model.TempPublisher{
+				Name:    2,
+				Channel: "c4",
+			},
+			setupFunc: func(r *http.Request, publisher model.Publisher) {
+				err := parser.Parse(r.Body, &publisher)
+				if err != nil {
+					t.Log(err.Error())
+				}
+				err = validate.Validate(publisher)
 
-			if err != nil {
-				t.Log(err.Error())
-			} else {
-				t.Errorf("Want: %v, Got: %v", errors.New("Key: 'Publisher.Name' Error:Field validation for 'Name' failed on the 'required' tag"), err.Error())
-			}
+				if err != nil {
+					t.Log(err.Error())
+				} else {
+					t.Errorf("Want: %v, Got: %v", errors.New("Key: 'Publisher.Name' Error:Field validation for 'Name' failed on the 'required' tag"), err.Error())
+				}
+			},
+			expectedResponse: model.Publisher{
+				Channel: "c4",
+			},
+		},
+	}
+	//parse succes, parse succes validate failure, parse failure
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var publisher model.Publisher
+			//var subscriber model.Subscriber
+			jsonValue, _ := json.Marshal(tt.requestBody)
+			r := httptest.NewRequest("POST", "/register/publisher", bytes.NewBuffer(jsonValue))
+			tt.setupFunc(r, publisher)
 		})
 	}
 }
