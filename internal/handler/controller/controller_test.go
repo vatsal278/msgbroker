@@ -219,11 +219,6 @@ func TestPublishMessage(t *testing.T) {
 				r := httptest.NewRequest("POST", "/register/publisher", bytes.NewBuffer(jsonValue))
 				RegisterPub := i.RegisterPublisher()
 				RegisterPub(w, r)
-				w = httptest.NewRecorder()
-				jsonValue, _ = json.Marshal(subscriber)
-				r = httptest.NewRequest("POST", "/register/subscriber", bytes.NewBuffer(jsonValue))
-				RegisterSub := i.RegisterSubscriber()
-				RegisterSub(w, r)
 			},
 			expectedResponse: temp_struct{
 				Status:  http.StatusBadRequest,
@@ -237,7 +232,7 @@ func TestPublishMessage(t *testing.T) {
 			i := NewController()
 			tt.setupFunc(i)
 			w := httptest.NewRecorder()
-			jsonValue, _ := json.Marshal(updates)
+			jsonValue, _ := json.Marshal(tt.requestBody)
 			r := httptest.NewRequest("POST", "/publish", bytes.NewBuffer(jsonValue))
 			Publish := i.PublishMessage()
 			Publish(w, r)
