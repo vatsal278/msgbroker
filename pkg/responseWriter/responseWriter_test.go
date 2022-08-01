@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/vatsal278/msgbroker/internal/model"
-	"github.com/vatsal278/msgbroker/pkg/responseWriter"
 )
 
 func TestResponseWriter(t *testing.T) {
@@ -24,7 +23,7 @@ func TestResponseWriter(t *testing.T) {
 			w := httptest.NewRecorder()
 			//r := httptest.
 			//Mock the interface and use them inside it
-			err := responseWriter.ResponseWriter(w, http.StatusOK, "Successfully Registered as publisher to the channel", nil, &model.Response{})
+			err := ResponseWriter(w, http.StatusOK, "Successfully Registered as publisher to the channel", nil, &model.Response{})
 			if err != nil {
 				t.Errorf("Want: %v, Got: %v", nil, err.Error())
 			}

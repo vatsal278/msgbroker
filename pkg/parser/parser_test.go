@@ -1,4 +1,4 @@
-package parser_test
+package parser
 
 import (
 	"bytes"
@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/vatsal278/msgbroker/internal/model"
-	"github.com/vatsal278/msgbroker/pkg/parser"
 )
 
 var callBack = model.CallBack{
@@ -41,7 +40,7 @@ func TestParser(t *testing.T) {
 			},
 			setupFunc: func(r *http.Request) {
 				var teststruct testStruct
-				err := parser.Parse(r.Body, &teststruct)
+				err := Parse(r.Body, &teststruct)
 				expectedResponse := testStruct{
 					Name:    "publisher1",
 					Channel: "c4",
@@ -62,7 +61,7 @@ func TestParser(t *testing.T) {
 			},
 			setupFunc: func(r *http.Request) {
 				var teststructfail testStructFail
-				err := parser.Parse(r.Body, &teststructfail)
+				err := Parse(r.Body, &teststructfail)
 				expectedResponse := testStructFail{}
 				if err != nil {
 					t.Log(err.Error())
@@ -78,13 +77,9 @@ func TestParser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
-			//var subscriber model.Subscriber
 			jsonValue, _ := json.Marshal(tt.requestBody)
 			r := httptest.NewRequest("POST", "/register/publisher", bytes.NewBuffer(jsonValue))
-			//bytes.NewReader(jsonValue)
 			tt.setupFunc(r)
-
 		})
 	}
 }

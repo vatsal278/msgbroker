@@ -7,17 +7,9 @@ type CallBack struct {
 	CallbackUrl string `validate:"required"`
 }
 
-type TempPublisher struct {
-	Name    interface{} `validate:"required"`
-	Channel string      `form:"channel" json:"channel" validate:"required"`
-}
 type Subscriber struct {
 	CallBack CallBack
 	Channel  string `form:"channel" json:"channel" validate:"required"`
-}
-type TempSubscriber struct {
-	CallBack CallBack
-	Channel  int `form:"channel" json:"channel" validate:"required"`
 }
 
 type Publisher struct {
@@ -29,10 +21,6 @@ type Updates struct {
 	Publisher Publisher `form:"publisher" json:"publisher" validate:"required"`
 	Update    string    `form:"update" json:"update" validate:"required"`
 }
-type TempUpdates struct {
-	Publisher TempPublisher `form:"publisher" json:"publisher" validate:"required"`
-	Update    int           `form:"update" json:"update" validate:"required"`
-}
 
 type MessageBroker struct {
 	PubM map[string]map[string]struct{} // 1st map's key is channel, 2nd map's key is publisher name
@@ -41,11 +29,6 @@ type MessageBroker struct {
 }
 type Response struct {
 	Status  int    `json:"status"`
-	Message string `json:"message"`
-	Data    interface{}
-}
-type TempResponse struct {
-	Status  string `json:"status"`
 	Message string `json:"message"`
 	Data    interface{}
 }

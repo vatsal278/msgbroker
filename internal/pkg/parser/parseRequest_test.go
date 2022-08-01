@@ -23,6 +23,10 @@ type testStruct struct {
 	Name    string
 	Channel string
 }
+type testStructFail struct {
+	Name    int
+	Channel int
+}
 
 func TestParseRequest(t *testing.T) {
 	tests := []struct {
@@ -66,22 +70,17 @@ func TestParseRequest(t *testing.T) {
 				Channel: "c4",
 			},
 			setupFunc: func(r *http.Request, publisher model.Publisher) {
-				var teststruct testStruct
-				err := parser.Parse(r.Body, &teststruct)
-				expectedResponse := testStruct{
-					Name:    "publisher1",
-					Channel: "c4",
-				}
+				var teststructfail testStructFail
+				err := parser.Parse(r.Body, &teststructfail)
+				expectedResponse := testStructFail{}
 				if err != nil {
-					t.Errorf("Want: %v, Got: %v", nil, err.Error())
+					t.Log(err.Error())
+				} else {
+					t.Errorf("Want: %v, Got: %v", "error", nil)
 				}
-				if !reflect.DeepEqual(teststruct, expectedResponse) {
-					t.Errorf("Want: %v, Got: %v", expectedResponse, &teststruct)
+				if !reflect.DeepEqual(teststructfail, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, teststructfail)
 				}
-			},
-			expectedResponse: model.Publisher{
-				Name:    "publisher1",
-				Channel: "c4",
 			},
 		},
 		{
