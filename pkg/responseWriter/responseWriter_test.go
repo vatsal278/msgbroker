@@ -5,10 +5,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/vatsal278/msgbroker/internal/model"
+	"github.com/golang/mock/gomock"
+	"github.com/vatsal278/msgbroker/mocks"
 )
 
 func TestResponseWriter(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 	tests := []struct {
 		name             string
 		expectedResponse interface{}
@@ -23,7 +26,9 @@ func TestResponseWriter(t *testing.T) {
 			w := httptest.NewRecorder()
 			//r := httptest.
 			//Mock the interface and use them inside it
-			err := ResponseWriter(w, http.StatusOK, "Successfully Registered as publisher to the channel", nil, &model.Response{})
+			MockResponse := mocks.NewMockResponse(ctrl)
+			MockResponse.EXPECT().Update(http.StatusOK, "Successfully Registered as publisher to the channel", nil)
+			err := ResponseWriter(w, http.StatusOK, "Successfully Registered as publisher to the channel", nil, MockResponse)
 			contentType := w.Header().Get("Content-Type")
 			if contentType != "application/json" {
 				t.Errorf("Want: Content Type as %v, Got: Content Type as %v", nil, err.Error())

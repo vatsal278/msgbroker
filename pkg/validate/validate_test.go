@@ -3,22 +3,11 @@ package validate
 import (
 	"errors"
 	"testing"
-
-	"github.com/vatsal278/msgbroker/internal/model"
 )
-
-var callBack = model.CallBack{
-	HttpMethod:  "GET",
-	CallbackUrl: "http://localhost:8083/pong",
-}
 
 type Publisher struct {
 	Name    string `form:"name" json:"name" validate:"required"`
 	Channel string `form:"channel" json:"channel" validate:"required"`
-}
-type tempPublisher struct {
-	Name    interface{} `validate:"required"`
-	Channel string      `form:"channel" json:"channel" validate:"required"`
 }
 
 func TestParser(t *testing.T) {
@@ -44,7 +33,7 @@ func TestParser(t *testing.T) {
 		{
 			name: "FAILURE:: validate",
 			setupFunc: func() {
-				var publisher = tempPublisher{
+				var publisher = Publisher{
 					Channel: "c4",
 				}
 				err := Validate(publisher)

@@ -7,14 +7,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
-
-	"github.com/vatsal278/msgbroker/internal/model"
 )
-
-var callBack = model.CallBack{
-	HttpMethod:  "GET",
-	CallbackUrl: "http://localhost:8083/pong",
-}
 
 type testStruct struct {
 	Name    string
