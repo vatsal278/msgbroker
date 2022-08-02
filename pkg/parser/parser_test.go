@@ -18,7 +18,6 @@ type testStructFail struct {
 }
 
 //var teststruct testStruct
-var teststructfail testStructFail
 
 func TestParser(t *testing.T) {
 	tests := []struct {
@@ -54,7 +53,7 @@ func TestParser(t *testing.T) {
 				Name:    "publisher1",
 				Channel: "c4",
 			},
-			setupModel: teststructfail,
+			setupModel: testStructFail{},
 			validation: func(err error, x interface{}) {
 				expectedResponse := testStructFail{}
 				if err != nil {

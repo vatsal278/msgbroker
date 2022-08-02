@@ -10,15 +10,12 @@ import (
 	"testing"
 
 	"github.com/vatsal278/msgbroker/internal/model"
-	"github.com/vatsal278/msgbroker/pkg/parser"
-	"github.com/vatsal278/msgbroker/pkg/validate"
 )
 
-var callBack = model.CallBack{
-	HttpMethod:  "GET",
-	CallbackUrl: "http://localhost:8083/pong",
+type Publisher struct {
+	Name    string `form:"name" json:"name" validate:"required"`
+	Channel string `form:"channel" json:"channel" validate:"required"`
 }
-
 type testStruct struct {
 	Name    string
 	Channel string
@@ -28,11 +25,11 @@ type testStructFail struct {
 	Channel int
 }
 
-func TestParseRequest(t *testing.T) {
+func TestParseAndValidateRequest(t *testing.T) {
 	tests := []struct {
 		name             string
 		requestBody      interface{}
-		setupFunc        func(r *http.Request, publisher model.Publisher)
+		setupFunc        func(r *http.Request, publisher Publisher)
 		expectedResponse interface{}
 	}{
 		{
@@ -41,21 +38,17 @@ func TestParseRequest(t *testing.T) {
 				Name:    "publisher1",
 				Channel: "c4",
 			},
-			setupFunc: func(r *http.Request, publisher model.Publisher) {
-				var expectedResponse = model.Publisher{
+			setupFunc: func(r *http.Request, publisher Publisher) {
+				var expectedResponse = Publisher{
 					Name:    "publisher1",
 					Channel: "c4",
 				}
-				err := parser.Parse(r.Body, &publisher)
-				if err != nil {
-					t.Errorf("Want: %v, Got: %v", nil, err.Error())
-				}
-				err = validate.Validate(publisher)
+				err := ParseAndValidateRequest(r.Body, publisher)
 				if err != nil {
 					t.Errorf("Want: %v, Got: %v", nil, err.Error())
 				}
 				if !reflect.DeepEqual(publisher, expectedResponse) {
-					t.Errorf("Want: %v, Got: %v", expectedResponse, publisher)
+					t.Errorf("Want: %v, Got: %v", expectedResponse, &publisher)
 				}
 			},
 			expectedResponse: model.Publisher{
@@ -69,9 +62,9 @@ func TestParseRequest(t *testing.T) {
 				Name:    "publisher1",
 				Channel: "c4",
 			},
-			setupFunc: func(r *http.Request, publisher model.Publisher) {
+			setupFunc: func(r *http.Request, publisher Publisher) {
 				var teststructfail testStructFail
-				err := parser.Parse(r.Body, &teststructfail)
+				err := ParseAndValidateRequest(r.Body, teststructfail)
 				expectedResponse := testStructFail{}
 				if err != nil {
 					t.Log(err.Error())
@@ -85,17 +78,11 @@ func TestParseRequest(t *testing.T) {
 		},
 		{
 			name: "FAILURE:: validate function",
-			requestBody: model.TempPublisher{
-				Name:    2,
-				Channel: "c4",
+			requestBody: testStructFail{
+				Name: 2,
 			},
-			setupFunc: func(r *http.Request, publisher model.Publisher) {
-				err := parser.Parse(r.Body, &publisher)
-				if err != nil {
-					t.Log(err.Error())
-				}
-				err = validate.Validate(publisher)
-
+			setupFunc: func(r *http.Request, publisher Publisher) {
+				err := ParseAndValidateRequest(r.Body, publisher)
 				if err != nil {
 					t.Log(err.Error())
 				} else {
@@ -110,7 +97,7 @@ func TestParseRequest(t *testing.T) {
 	//parse succes, parse succes validate failure, parse failure
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var publisher model.Publisher
+			var publisher Publisher
 			//var subscriber model.Subscriber
 			jsonValue, _ := json.Marshal(tt.requestBody)
 			r := httptest.NewRequest("POST", "/register/publisher", bytes.NewBuffer(jsonValue))
