@@ -14,17 +14,16 @@ func TestParser(t *testing.T) {
 	tests := []struct {
 		name          string
 		requestBody   interface{}
-		setupFunc     func()
+		validateFunc  func(error)
 		expectedError interface{}
 	}{
 		{
 			name: "SUCCESS:: validate",
-			setupFunc: func() {
-				var publisher = Publisher{
-					Name:    "publisher1",
-					Channel: "c4",
-				}
-				err := Validate(publisher)
+			requestBody: Publisher{
+				Name:    "publisher1",
+				Channel: "c4",
+			},
+			validateFunc: func(err error) {
 				if err != nil {
 					t.Errorf("Want: %v, Got: %v", nil, err.Error())
 				}
@@ -32,11 +31,11 @@ func TestParser(t *testing.T) {
 		},
 		{
 			name: "FAILURE:: validate",
-			setupFunc: func() {
-				var publisher = Publisher{
-					Channel: "c4",
-				}
-				err := Validate(publisher)
+			requestBody: Publisher{
+
+				Channel: "c4",
+			},
+			validateFunc: func(err error) {
 				if err != nil {
 					return
 				} else {
@@ -48,7 +47,9 @@ func TestParser(t *testing.T) {
 	//remove the http request logic and directly pass in local struct to validate
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.setupFunc()
+			var publisher = tt.requestBody
+			err := Validate(publisher)
+			tt.validateFunc(err)
 		})
 	}
 }
