@@ -128,7 +128,7 @@ func TestRegisterSubscriber(t *testing.T) {
 			},
 		},
 		{
-			name:        "FAILURE:: Register Publisher",
+			name:        "FAILURE:: Register subscriber incomplete data case",
 			requestBody: dummy,
 			expected_response: temp_struct{
 				Status:  http.StatusBadRequest,
@@ -286,7 +286,7 @@ func TestPublishMessage(t *testing.T) {
 	}
 }
 
-func TestNoArticleFound(t *testing.T) {
+func TestNoRouteFound(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	//errorCase := int(tt.ErrorCase)

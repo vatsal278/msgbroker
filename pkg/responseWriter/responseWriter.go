@@ -6,6 +6,7 @@ import (
 	"net/http"
 )
 
+//go:generate mockgen --destination=./../../mocks/mock_response.go --package=mocks github.com/vatsal278/msgbroker/pkg/responseWriter Response
 type Response interface {
 	Update(int, string, interface{})
 }
