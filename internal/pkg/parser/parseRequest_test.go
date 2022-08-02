@@ -2,106 +2,69 @@ package parseRequest
 
 import (
 	"bytes"
-	"encoding/json"
-	"errors"
-	"net/http"
-	"net/http/httptest"
+	"io"
 	"reflect"
+	"strings"
 	"testing"
-
-	"github.com/vatsal278/msgbroker/internal/model"
 )
 
-type Publisher struct {
-	Name    string `form:"name" json:"name" validate:"required"`
-	Channel string `form:"channel" json:"channel" validate:"required"`
-}
-type testStruct struct {
-	Name    string
-	Channel string
-}
-type testStructFail struct {
-	Name    int
-	Channel int
-}
-
 func TestParseAndValidateRequest(t *testing.T) {
+	type testStruct struct {
+		Field1 int `json:"field_1" validate:"required"`
+	}
 	tests := []struct {
-		name             string
-		requestBody      interface{}
-		setupFunc        func(r *http.Request, publisher Publisher)
-		expectedResponse interface{}
+		name        string
+		requestBody io.ReadCloser
+		validation  func(error, testStruct)
 	}{
 		{
-			name: "SUCCESS:: ParseRequest",
-			requestBody: model.Publisher{
-				Name:    "publisher1",
-				Channel: "c4",
-			},
-			setupFunc: func(r *http.Request, publisher Publisher) {
-				var expectedResponse = Publisher{
-					Name:    "publisher1",
-					Channel: "c4",
+			name:        "FAILURE:: Parse failure::json unmarshall error",
+			requestBody: io.NopCloser(bytes.NewBuffer([]byte(`{"field_1": "23"}`))),
+			validation: func(err error, x testStruct) {
+				if !strings.Contains(err.Error(), "cannot unmarshal string into Go struct field") {
+					t.Errorf("Want: %v, Got: %v", "cannot unmarshal string into Go struct field", err.Error())
 				}
-				err := ParseAndValidateRequest(r.Body, publisher)
+				expectedResponse := testStruct{}
+				if !reflect.DeepEqual(x, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, x)
+				}
+			},
+		},
+		{
+			name:        "FAILURE:: Parse success::validation failure",
+			requestBody: io.NopCloser(bytes.NewBuffer([]byte("{}"))),
+			validation: func(err error, x testStruct) {
+				if !strings.Contains(err.Error(), "failed on the 'required' tag") {
+					t.Errorf("Want: %v, Got: %v", "failed on the 'required' tag", err.Error())
+				}
+				expectedResponse := testStruct{}
+				if !reflect.DeepEqual(x, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, x)
+				}
+			},
+		},
+		{
+			name:        "SUCCESS",
+			requestBody: io.NopCloser(bytes.NewBuffer([]byte(`{"field_1": 12}`))),
+			validation: func(err error, x testStruct) {
 				if err != nil {
 					t.Errorf("Want: %v, Got: %v", nil, err.Error())
 				}
-				if !reflect.DeepEqual(publisher, expectedResponse) {
-					t.Errorf("Want: %v, Got: %v", expectedResponse, &publisher)
+				expectedResponse := testStruct{
+					Field1: 12,
 				}
-			},
-			expectedResponse: model.Publisher{
-				Name:    "publisher1",
-				Channel: "c4",
-			},
-		},
-		{
-			name: "FAILURE:: Parse",
-			requestBody: testStruct{
-				Name:    "publisher1",
-				Channel: "c4",
-			},
-			setupFunc: func(r *http.Request, publisher Publisher) {
-				var teststructfail testStructFail
-				err := ParseAndValidateRequest(r.Body, teststructfail)
-				expectedResponse := testStructFail{}
-				if err != nil {
-					t.Log(err.Error())
-				} else {
-					t.Errorf("Want: %v, Got: %v", "error", nil)
+				if !reflect.DeepEqual(x, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, x)
 				}
-				if !reflect.DeepEqual(teststructfail, expectedResponse) {
-					t.Errorf("Want: %v, Got: %v", expectedResponse, teststructfail)
-				}
-			},
-		},
-		{
-			name: "FAILURE:: validate function",
-			requestBody: testStructFail{
-				Name: 2,
-			},
-			setupFunc: func(r *http.Request, publisher Publisher) {
-				err := ParseAndValidateRequest(r.Body, publisher)
-				if err != nil {
-					t.Log(err.Error())
-				} else {
-					t.Errorf("Want: %v, Got: %v", errors.New("Key: 'Publisher.Name' Error:Field validation for 'Name' failed on the 'required' tag"), err.Error())
-				}
-			},
-			expectedResponse: model.Publisher{
-				Channel: "c4",
 			},
 		},
 	}
-	//parse succes, parse succes validate failure, parse failure
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var publisher Publisher
-			//var subscriber model.Subscriber
-			jsonValue, _ := json.Marshal(tt.requestBody)
-			r := httptest.NewRequest("POST", "/register/publisher", bytes.NewBuffer(jsonValue))
-			tt.setupFunc(r, publisher)
+			temp := testStruct{}
+			err := ParseAndValidateRequest(tt.requestBody, &temp)
+			tt.validation(err, temp)
 		})
 	}
 }
