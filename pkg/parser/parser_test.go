@@ -3,7 +3,6 @@ package parser
 import (
 	"bytes"
 	"encoding/json"
-	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
@@ -18,11 +17,15 @@ type testStructFail struct {
 	Channel int
 }
 
+//var teststruct testStruct
+var teststructfail testStructFail
+
 func TestParser(t *testing.T) {
 	tests := []struct {
 		name             string
 		requestBody      interface{}
-		setupFunc        func(r *http.Request)
+		setupModel       interface{}
+		validation       func(error, interface{})
 		expectedResponse interface{}
 	}{
 		{
@@ -31,9 +34,8 @@ func TestParser(t *testing.T) {
 				Name:    "publisher1",
 				Channel: "c4",
 			},
-			setupFunc: func(r *http.Request) {
-				var teststruct testStruct
-				err := Parse(r.Body, &teststruct)
+			setupModel: testStruct{},
+			validation: func(err error, x interface{}) {
 				expectedResponse := testStruct{
 					Name:    "publisher1",
 					Channel: "c4",
@@ -41,8 +43,8 @@ func TestParser(t *testing.T) {
 				if err != nil {
 					t.Errorf("Want: %v, Got: %v", nil, err.Error())
 				}
-				if !reflect.DeepEqual(teststruct, expectedResponse) {
-					t.Errorf("Want: %v, Got: %v", expectedResponse, &teststruct)
+				if !reflect.DeepEqual(x, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, x)
 				}
 			},
 		},
@@ -52,27 +54,27 @@ func TestParser(t *testing.T) {
 				Name:    "publisher1",
 				Channel: "c4",
 			},
-			setupFunc: func(r *http.Request) {
-				var teststructfail testStructFail
-				err := Parse(r.Body, &teststructfail)
+			setupModel: teststructfail,
+			validation: func(err error, x interface{}) {
 				expectedResponse := testStructFail{}
 				if err != nil {
 					t.Log(err.Error())
 				} else {
 					t.Errorf("Want: %v, Got: %v", "error", nil)
 				}
-				if !reflect.DeepEqual(teststructfail, expectedResponse) {
-					t.Errorf("Want: %v, Got: %v", expectedResponse, teststructfail)
+				if !reflect.DeepEqual(&x, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, &x)
 				}
 			},
-			expectedResponse: testStructFail{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			jsonValue, _ := json.Marshal(tt.requestBody)
 			r := httptest.NewRequest("POST", "/register/publisher", bytes.NewBuffer(jsonValue))
-			tt.setupFunc(r)
+			var temp = tt.setupModel
+			err := Parse(r.Body, &temp)
+			tt.validation(err, &temp)
 		})
 	}
 }
