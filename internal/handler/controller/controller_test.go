@@ -11,7 +11,6 @@ import (
 
 	"github.com/vatsal278/msgbroker/internal/constants"
 	controllerInterface "github.com/vatsal278/msgbroker/internal/handler"
-	"github.com/vatsal278/msgbroker/internal/model"
 )
 
 type temp_struct struct {
@@ -71,6 +70,13 @@ func TestRegisterPublisher(t *testing.T) {
 			i := NewController()
 			RegisterPub := i.RegisterPublisher()
 			RegisterPub(w, r)
+			contentType := w.Header().Get("Content-Type")
+			if contentType != "application/json" {
+				t.Errorf("Want: Content Type as %v", nil)
+			}
+			if w.Code != http.StatusOK {
+				t.Errorf("Want: %v, Got: %v", http.StatusOK, w.Code)
+			}
 			response_body, error := ioutil.ReadAll(w.Body)
 			if error != nil {
 				t.Error(error.Error())
@@ -140,12 +146,20 @@ func TestRegisterSubscriber(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
+
 			t.Log(w.Code)
 			jsonValue, _ := json.Marshal(tt.requestBody)
 			r := httptest.NewRequest("POST", "/register/subscriber", bytes.NewBuffer(jsonValue))
 			i := NewController()
 			RegisterSub := i.RegisterSubscriber()
 			RegisterSub(w, r)
+			contentType := w.Header().Get("Content-Type")
+			if contentType != "application/json" {
+				t.Errorf("Want: Content Type as %v", nil)
+			}
+			if w.Code != tt.expected_response.Status {
+				t.Errorf("Want: %v, Got: %v", tt.expected_response.Status, w.Code)
+			}
 			response_body, error := ioutil.ReadAll(w.Body)
 			if error != nil {
 				t.Error(error.Error())
@@ -269,6 +283,13 @@ func TestPublishMessage(t *testing.T) {
 			r := httptest.NewRequest("POST", "/publish", bytes.NewBuffer(jsonValue))
 			Publish := i.PublishMessage()
 			Publish(w, r)
+			contentType := w.Header().Get("Content-Type")
+			if contentType != "application/json" {
+				t.Errorf("Want: Content Type as %v", nil)
+			}
+			if w.Code != tt.expectedResponse.Status {
+				t.Errorf("Want: %v, Got: %v", tt.expectedResponse.Status, w.Code)
+			}
 			response_body, error := ioutil.ReadAll(w.Body)
 			if error != nil {
 				t.Error(error.Error())
@@ -287,29 +308,48 @@ func TestPublishMessage(t *testing.T) {
 }
 
 func TestNoRouteFound(t *testing.T) {
+	type Response struct {
+		Status  int    `json:"status"`
+		Message string `json:"message"`
+		Data    interface{}
+	}
+	tests := []struct {
+		name             string
+		requestBody      interface{}
+		expectedResponse Response
+		setupFunc        func(controllerInterface.IController)
+	}{
+		{
+			name: "Success:: NoRouteFound",
 
-	w := httptest.NewRecorder()
-	//errorCase := int(tt.ErrorCase)
-	i := NewController()
-	NorouteController := i.NoRouteFound()
-	r := httptest.NewRequest("POST", "/a", nil)
-	NorouteController(w, r)
-	response_body, error := ioutil.ReadAll(w.Body)
-	if error != nil {
-		t.Error(error.Error())
+			expectedResponse: Response{
+				Status:  http.StatusNotFound,
+				Message: "no route found",
+				Data:    nil,
+			},
+		},
 	}
-	var response model.Response
-	err := json.Unmarshal(response_body, &response)
-	if err != nil {
-		t.Error(error.Error())
-	}
-	t.Log(response)
-	expected_response := model.Response{
-		Status:  http.StatusNotFound,
-		Message: "no route found",
-		Data:    nil,
-	}
-	if !reflect.DeepEqual(response, expected_response) {
-		t.Errorf("Want: %v, Got: %v", expected_response, response)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			//errorCase := int(tt.ErrorCase)
+			i := NewController()
+			NorouteController := i.NoRouteFound()
+			r := httptest.NewRequest("POST", "/a", nil)
+			NorouteController(w, r)
+			response_body, error := ioutil.ReadAll(w.Body)
+			if error != nil {
+				t.Error(error.Error())
+			}
+			var response Response
+			err := json.Unmarshal(response_body, &response)
+			if err != nil {
+				t.Error(error.Error())
+			}
+			t.Log(response)
+			if !reflect.DeepEqual(response, tt.expectedResponse) {
+				t.Errorf("Want: %v, Got: %v", tt.expectedResponse, response)
+			}
+		})
 	}
 }
