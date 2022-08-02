@@ -163,14 +163,7 @@ func TestRegisterSubscriber(t *testing.T) {
 }
 
 func TestPublishMessage(t *testing.T) {
-	/*var callback = model.CallBack{
-		HttpMethod:  "GET",
-		CallbackUrl: "http://localhost:8083/pong",
-	}
-	var subscriber = model.Subscriber{
-		CallBack: callback,
-		Channel:  "c4",
-	}*/
+
 	type Publisher struct {
 		Name    string `form:"name" json:"name" validate:"required"`
 		Channel string `form:"channel" json:"channel" validate:"required"`
@@ -309,5 +302,14 @@ func TestNoArticleFound(t *testing.T) {
 	err := json.Unmarshal(response_body, &response)
 	if err != nil {
 		t.Error(error.Error())
+	}
+	t.Log(response)
+	expected_response := model.Response{
+		Status:  http.StatusNotFound,
+		Message: "no route found",
+		Data:    nil,
+	}
+	if !reflect.DeepEqual(response, expected_response) {
+		t.Errorf("Want: %v, Got: %v", expected_response, response)
 	}
 }

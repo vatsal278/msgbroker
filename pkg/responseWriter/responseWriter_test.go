@@ -24,6 +24,10 @@ func TestResponseWriter(t *testing.T) {
 			//r := httptest.
 			//Mock the interface and use them inside it
 			err := ResponseWriter(w, http.StatusOK, "Successfully Registered as publisher to the channel", nil, &model.Response{})
+			contentType := w.Header().Get("Content-Type")
+			if contentType != "application/json" {
+				t.Errorf("Want: Content Type as %v, Got: Content Type as %v", nil, err.Error())
+			}
 			if err != nil {
 				t.Errorf("Want: %v, Got: %v", nil, err.Error())
 			}
