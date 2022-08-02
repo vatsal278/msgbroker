@@ -65,11 +65,14 @@ func TestRegisterPublisher(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			t.Log(w.Code)
+			reqbody := tt.requestBody
 			jsonValue, _ := json.Marshal(tt.requestBody)
 			r := httptest.NewRequest("POST", "/register/publisher", bytes.NewBuffer(jsonValue))
 			i := NewController()
 			RegisterPub := i.RegisterPublisher()
 			RegisterPub(w, r)
+			var x *models = i.(*models)
+			x.messageBroker.PubM[reqbody.channel]
 			contentType := w.Header().Get("Content-Type")
 			if contentType != "application/json" {
 				t.Errorf("Want: Content Type as %v", nil)

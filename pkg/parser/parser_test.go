@@ -23,7 +23,7 @@ func TestParser(t *testing.T) {
 	tests := []struct {
 		name             string
 		requestBody      interface{}
-		setupModel       interface{}
+		setupModel       func() interface{}
 		validation       func(error, interface{})
 		expectedResponse interface{}
 	}{
@@ -33,8 +33,12 @@ func TestParser(t *testing.T) {
 				Name:    "publisher1",
 				Channel: "c4",
 			},
-			setupModel: testStruct{},
+			setupModel: func() interface{} {
+				var teststruct testStruct
+				return teststruct
+			},
 			validation: func(err error, x interface{}) {
+				t.Log(x.(testStruct))
 				expectedResponse := testStruct{
 					Name:    "publisher1",
 					Channel: "c4",
@@ -42,12 +46,12 @@ func TestParser(t *testing.T) {
 				if err != nil {
 					t.Errorf("Want: %v, Got: %v", nil, err.Error())
 				}
-				if !reflect.DeepEqual(x, expectedResponse) {
-					t.Errorf("Want: %v, Got: %v", expectedResponse, x)
+				if !reflect.DeepEqual(&x, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, &x)
 				}
 			},
 		},
-		{
+		/*{
 			name: "FAILURE:: Parser",
 			requestBody: testStruct{
 				Name:    "publisher1",
@@ -65,15 +69,19 @@ func TestParser(t *testing.T) {
 					t.Errorf("Want: %v, Got: %v", expectedResponse, &x)
 				}
 			},
-		},
+		},*/
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			jsonValue, _ := json.Marshal(tt.requestBody)
 			r := httptest.NewRequest("POST", "/register/publisher", bytes.NewBuffer(jsonValue))
-			var temp = tt.setupModel
-			err := Parse(r.Body, &temp)
-			tt.validation(err, &temp)
+			temp := tt.setupModel()
+			x := temp.(testStruct)
+
+			err := Parse(r.Body, x)
+
+			tt.validation(err, x)
+
 		})
 	}
 }
