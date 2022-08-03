@@ -60,7 +60,7 @@ func TestRegisterPublisher(t *testing.T) {
 				}
 				contentType := w.Header().Get("Content-Type")
 				if contentType != "application/json" {
-					t.Errorf("Want: Content Type as %v", nil)
+					t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
 				}
 				if w.Code != http.StatusCreated {
 					t.Errorf("Want: %v, Got: %v", http.StatusCreated, w.Code)
@@ -102,7 +102,7 @@ func TestRegisterPublisher(t *testing.T) {
 				}
 				contentType := w.Header().Get("Content-Type")
 				if contentType != "application/json" {
-					t.Errorf("Want: Content Type as %v", nil)
+					t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
 				}
 				if w.Code != http.StatusBadRequest {
 					t.Errorf("Want: %v, Got: %v", http.StatusBadRequest, w.Code)
@@ -190,12 +190,12 @@ func TestRegisterSubscriber(t *testing.T) {
 					}
 				}
 				m := x.messageBroker.SubM[subscriber.Channel]
-				if len(m) == 0 {
+				if len(m) != 1 {
 					t.Errorf("Want: %v, Got: %v", "1", len(m))
 				}
 				contentType := w.Header().Get("Content-Type")
 				if contentType != "application/json" {
-					t.Errorf("Want: Content Type as %v", nil)
+					t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
 				}
 				expectedResponse := tempStruct{
 					Status:  http.StatusCreated,
@@ -238,7 +238,7 @@ func TestRegisterSubscriber(t *testing.T) {
 				}
 				contentType := w.Header().Get("Content-Type")
 				if contentType != "application/json" {
-					t.Errorf("Want: Content Type as %v", nil)
+					t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
 				}
 				expectedResponse := tempStruct{
 					Status:  http.StatusBadRequest,
@@ -384,7 +384,7 @@ func TestPublishMessage(t *testing.T) {
 			Publish(w, r)
 			contentType := w.Header().Get("Content-Type")
 			if contentType != "application/json" {
-				t.Errorf("Want: Content Type as %v", nil)
+				t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
 			}
 			if w.Code != tt.expectedResponse.Status {
 				t.Errorf("Want: %v, Got: %v", tt.expectedResponse.Status, w.Code)
@@ -421,12 +421,19 @@ func TestNoRouteFound(t *testing.T) {
 		{
 			name: "Success:: NoRouteFound",
 
-			expectedResponse: Response{
-				Status:  http.StatusNotFound,
-				Message: "no route found",
-				Data:    nil,
-			},
 			validateFunc: func(w *httptest.ResponseRecorder, r *http.Request) {
+				contentType := w.Header().Get("Content-Type")
+				if contentType != "application/json" {
+					t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
+				}
+				expectedResponse := Response{
+					Status:  http.StatusNotFound,
+					Message: "no route found",
+					Data:    nil,
+				}
+				if w.Code != expectedResponse.Status {
+					t.Errorf("Want: %v, Got: %v", expectedResponse.Status, w.Code)
+				}
 				responseBody, error := ioutil.ReadAll(w.Body)
 				if error != nil {
 					t.Error(error.Error())
@@ -437,11 +444,6 @@ func TestNoRouteFound(t *testing.T) {
 					t.Error(error.Error())
 				}
 				t.Log(response)
-				expectedResponse := Response{
-					Status:  http.StatusNotFound,
-					Message: "No Route Found",
-					Data:    nil,
-				}
 				if !reflect.DeepEqual(response, expectedResponse) {
 					t.Errorf("Want: %v, Got: %v", expectedResponse, response)
 				}
