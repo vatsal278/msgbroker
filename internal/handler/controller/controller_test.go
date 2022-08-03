@@ -13,7 +13,7 @@ import (
 	controllerInterface "github.com/vatsal278/msgbroker/internal/handler"
 )
 
-type temp_struct struct {
+type tempStruct struct {
 	Status  int    `json:"status"`
 	Message string `json:"message"`
 	Data    interface{}
@@ -40,7 +40,7 @@ func TestRegisterPublisher(t *testing.T) {
 		name              string
 		requestBody       interface{}
 		ValidateFunc      func(*httptest.ResponseRecorder, controllerInterface.IController, interface{})
-		expected_response temp_struct
+		expected_response tempStruct
 	}{
 		{
 			name:        "Success:: Register Publisher",
@@ -65,13 +65,13 @@ func TestRegisterPublisher(t *testing.T) {
 				if w.Code != http.StatusCreated {
 					t.Errorf("Want: %v, Got: %v", http.StatusCreated, w.Code)
 				}
-				response_body, error := ioutil.ReadAll(w.Body)
+				responseBody, error := ioutil.ReadAll(w.Body)
 				if error != nil {
 					t.Error(error.Error())
 				}
-				var response temp_struct
-				err := json.Unmarshal(response_body, &response)
-				expectedResponse := temp_struct{
+				var response tempStruct
+				err := json.Unmarshal(responseBody, &response)
+				expectedResponse := tempStruct{
 					Status:  http.StatusCreated,
 					Message: "Successfully Registered as publisher to the channel",
 					Data:    nil,
@@ -107,13 +107,13 @@ func TestRegisterPublisher(t *testing.T) {
 				if w.Code != http.StatusBadRequest {
 					t.Errorf("Want: %v, Got: %v", http.StatusBadRequest, w.Code)
 				}
-				response_body, error := ioutil.ReadAll(w.Body)
+				responseBody, error := ioutil.ReadAll(w.Body)
 				if error != nil {
 					t.Error(error.Error())
 				}
-				var response temp_struct
-				err := json.Unmarshal(response_body, &response)
-				expectedResponse := temp_struct{
+				var response tempStruct
+				err := json.Unmarshal(responseBody, &response)
+				expectedResponse := tempStruct{
 					Status:  http.StatusBadRequest,
 					Message: constants.IncompleteData,
 					Data:    nil,
@@ -170,7 +170,7 @@ func TestRegisterSubscriber(t *testing.T) {
 	}
 	tests := []struct {
 		name              string
-		expected_response temp_struct
+		expected_response tempStruct
 		requestBody       interface{}
 		ValidateFunc      func(*httptest.ResponseRecorder, controllerInterface.IController, interface{})
 	}{
@@ -197,7 +197,7 @@ func TestRegisterSubscriber(t *testing.T) {
 				if contentType != "application/json" {
 					t.Errorf("Want: Content Type as %v", nil)
 				}
-				expectedResponse := temp_struct{
+				expectedResponse := tempStruct{
 					Status:  http.StatusCreated,
 					Message: "Successfully Registered as Subscriber to the channel",
 					Data:    nil,
@@ -206,12 +206,12 @@ func TestRegisterSubscriber(t *testing.T) {
 				if w.Code != expectedResponse.Status {
 					t.Errorf("Want: %v, Got: %v", expectedResponse.Status, w.Code)
 				}
-				response_body, error := ioutil.ReadAll(w.Body)
+				responseBody, error := ioutil.ReadAll(w.Body)
 				if error != nil {
 					t.Error(error.Error())
 				}
-				var response temp_struct
-				err := json.Unmarshal(response_body, &response)
+				var response tempStruct
+				err := json.Unmarshal(responseBody, &response)
 				if err != nil {
 					t.Error(error.Error())
 				}
@@ -223,7 +223,7 @@ func TestRegisterSubscriber(t *testing.T) {
 		{
 			name:        "FAILURE:: Register subscriber::Incorrect Input Details",
 			requestBody: dummy,
-			expected_response: temp_struct{
+			expected_response: tempStruct{
 				Status:  http.StatusBadRequest,
 				Message: constants.IncompleteData,
 				Data:    nil,
@@ -246,7 +246,7 @@ func TestRegisterSubscriber(t *testing.T) {
 				if contentType != "application/json" {
 					t.Errorf("Want: Content Type as %v", nil)
 				}
-				expectedResponse := temp_struct{
+				expectedResponse := tempStruct{
 					Status:  http.StatusBadRequest,
 					Message: constants.IncompleteData,
 					Data:    nil,
@@ -255,12 +255,12 @@ func TestRegisterSubscriber(t *testing.T) {
 				if w.Code != expectedResponse.Status {
 					t.Errorf("Want: %v, Got: %v", expectedResponse.Status, w.Code)
 				}
-				response_body, error := ioutil.ReadAll(w.Body)
+				responseBody, error := ioutil.ReadAll(w.Body)
 				if error != nil {
 					t.Error(error.Error())
 				}
-				var response temp_struct
-				err := json.Unmarshal(response_body, &response)
+				var response tempStruct
+				err := json.Unmarshal(responseBody, &response)
 				if err != nil {
 					t.Error(error.Error())
 				}
@@ -326,7 +326,7 @@ func TestPublishMessage(t *testing.T) {
 	tests := []struct {
 		name             string
 		requestBody      interface{}
-		expectedResponse temp_struct
+		expectedResponse tempStruct
 		setupFunc        func(controllerInterface.IController)
 	}{
 		{
@@ -341,7 +341,7 @@ func TestPublishMessage(t *testing.T) {
 				}
 				x.messageBroker.PubM[publisher.Channel] = m
 			},
-			expectedResponse: temp_struct{
+			expectedResponse: tempStruct{
 				Status:  http.StatusOK,
 				Message: "notified all subscriber",
 				Data:    nil,
@@ -352,7 +352,7 @@ func TestPublishMessage(t *testing.T) {
 			requestBody: updates,
 			setupFunc: func(i controllerInterface.IController) {
 			},
-			expectedResponse: temp_struct{
+			expectedResponse: tempStruct{
 				Status:  http.StatusNotFound,
 				Message: "No publisher found with the specified name for specified channel",
 				Data:    nil,
@@ -370,7 +370,7 @@ func TestPublishMessage(t *testing.T) {
 				}
 				x.messageBroker.PubM[publisher.Channel] = m
 			},
-			expectedResponse: temp_struct{
+			expectedResponse: tempStruct{
 				Status:  http.StatusBadRequest,
 				Message: constants.IncompleteData,
 				Data:    nil,
@@ -395,12 +395,12 @@ func TestPublishMessage(t *testing.T) {
 			if w.Code != tt.expectedResponse.Status {
 				t.Errorf("Want: %v, Got: %v", tt.expectedResponse.Status, w.Code)
 			}
-			response_body, error := ioutil.ReadAll(w.Body)
+			responseBody, error := ioutil.ReadAll(w.Body)
 			if error != nil {
 				t.Error(error.Error())
 			}
-			var response temp_struct
-			err := json.Unmarshal(response_body, &response)
+			var response tempStruct
+			err := json.Unmarshal(responseBody, &response)
 			if err != nil {
 				t.Error(error.Error())
 			}
@@ -433,23 +433,23 @@ func TestNoRouteFound(t *testing.T) {
 				Data:    nil,
 			},
 			validateFunc: func(w *httptest.ResponseRecorder, r *http.Request) {
-				response_body, error := ioutil.ReadAll(w.Body)
+				responseBody, error := ioutil.ReadAll(w.Body)
 				if error != nil {
 					t.Error(error.Error())
 				}
 				var response Response
-				err := json.Unmarshal(response_body, &response)
+				err := json.Unmarshal(responseBody, &response)
 				if err != nil {
 					t.Error(error.Error())
 				}
 				t.Log(response)
-				expected_response := Response{
+				expectedResponse := Response{
 					Status:  http.StatusNotFound,
 					Message: "No Route Found",
 					Data:    nil,
 				}
-				if !reflect.DeepEqual(response, expected_response) {
-					t.Errorf("Want: %v, Got: %v", expected_response, response)
+				if !reflect.DeepEqual(response, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, response)
 				}
 			},
 		},
