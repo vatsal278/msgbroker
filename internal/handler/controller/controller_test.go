@@ -360,15 +360,9 @@ func TestPublishMessage(t *testing.T) {
 			},
 		},
 		{
-			name:        "FAILURE:: No Publisher Found",
+			name:        "FAILURE::Publish Message::No Publisher Found",
 			requestBody: updates,
 			setupFunc: func(i controllerInterface.IController) {
-				/*w := httptest.NewRecorder()
-				jsonValue, _ := json.Marshal(subscriber)
-				r := httptest.NewRequest("POST", "/register/subscriber", bytes.NewBuffer(jsonValue))
-				RegisterSub := i.RegisterSubscriber()
-				RegisterSub(w, r)*/
-
 			},
 			expectedResponse: temp_struct{
 				Status:  http.StatusNotFound,
@@ -456,7 +450,6 @@ func TestNoRouteFound(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			w := httptest.NewRecorder()
-			//errorCase := int(tt.ErrorCase)
 			i := NewController()
 			NorouteController := i.NoRouteFound()
 			r := httptest.NewRequest("POST", "/a", nil)
