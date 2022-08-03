@@ -434,7 +434,7 @@ func TestNoRouteFound(t *testing.T) {
 		name             string
 		requestBody      interface{}
 		expectedResponse Response
-		setupFunc        func(controllerInterface.IController)
+		validateFunc     func(*httptest.ResponseRecorder, *http.Request)
 	}{
 		{
 			name: "Success:: NoRouteFound",
@@ -443,6 +443,26 @@ func TestNoRouteFound(t *testing.T) {
 				Status:  http.StatusNotFound,
 				Message: "no route found",
 				Data:    nil,
+			},
+			validateFunc: func(w *httptest.ResponseRecorder, r *http.Request) {
+				response_body, error := ioutil.ReadAll(w.Body)
+				if error != nil {
+					t.Error(error.Error())
+				}
+				var response Response
+				err := json.Unmarshal(response_body, &response)
+				if err != nil {
+					t.Error(error.Error())
+				}
+				t.Log(response)
+				expected_response := Response{
+					Status:  http.StatusNotFound,
+					Message: "No Route Found",
+					Data:    nil,
+				}
+				if !reflect.DeepEqual(response, expected_response) {
+					t.Errorf("Want: %v, Got: %v", expected_response, response)
+				}
 			},
 		},
 	}
@@ -454,19 +474,7 @@ func TestNoRouteFound(t *testing.T) {
 			NorouteController := i.NoRouteFound()
 			r := httptest.NewRequest("POST", "/a", nil)
 			NorouteController(w, r)
-			response_body, error := ioutil.ReadAll(w.Body)
-			if error != nil {
-				t.Error(error.Error())
-			}
-			var response Response
-			err := json.Unmarshal(response_body, &response)
-			if err != nil {
-				t.Error(error.Error())
-			}
-			t.Log(response)
-			if !reflect.DeepEqual(response, tt.expectedResponse) {
-				t.Errorf("Want: %v, Got: %v", tt.expectedResponse, response)
-			}
+			tt.validateFunc(w, r)
 		})
 	}
 }
