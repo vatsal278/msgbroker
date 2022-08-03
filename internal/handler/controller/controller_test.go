@@ -49,6 +49,13 @@ func TestRegisterPublisher(t *testing.T) {
 				var x *models = i.(*models)
 				var y Publisher = reqbody.(Publisher)
 				t.Log(y)
+
+				for {
+					m := x.messageBroker.PubM[publisher.Channel]
+					if len(m) == 1 {
+						break
+					}
+				}
 				m, ok := x.messageBroker.PubM[publisher.Channel]
 				if !ok {
 					t.Errorf("Want: %v, Got: %v", "publisher map", ok)
@@ -90,6 +97,13 @@ func TestRegisterPublisher(t *testing.T) {
 				var x *models = i.(*models)
 				var y tempPublisher = reqbody.(tempPublisher)
 				t.Log(y)
+
+				for {
+					m := x.messageBroker.PubM[dummy.Channel]
+					if len(m) == 0 {
+						break
+					}
+				}
 				m, ok := x.messageBroker.PubM[dummy.Channel]
 				if ok {
 					t.Errorf("Want: %v, Got: %v", "not ok", ok)
