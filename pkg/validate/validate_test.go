@@ -30,7 +30,7 @@ func TestParser(t *testing.T) {
 			},
 		},
 		{
-			name: "FAILURE:: validate",
+			name: "FAILURE:: validate:: Incomplete Input Details",
 			requestBody: Publisher{
 
 				Channel: "c4",

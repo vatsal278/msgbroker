@@ -29,7 +29,7 @@ func TestRegisterPublisher(t *testing.T) {
 		expected_response temp_struct
 	}{
 		{
-			name:        "Success:: Register Publisher",
+			name:        "Success:: Router Test",
 			requestBody: publisher,
 			expected_response: temp_struct{
 				Status:  http.StatusCreated,

@@ -52,7 +52,7 @@ func TestRegisterPublisher(t *testing.T) {
 			},
 		},
 		{
-			name:        "FAILURE:: Register Publisher",
+			name:        "FAILURE:: Register Publisher:Incorrect Input Details",
 			requestBody: dummy,
 			expected_response: temp_struct{
 				Status:  http.StatusBadRequest,
@@ -72,7 +72,9 @@ func TestRegisterPublisher(t *testing.T) {
 			RegisterPub := i.RegisterPublisher()
 			RegisterPub(w, r)
 			var x *models = i.(*models)
-			x.messageBroker.PubM[reqbody.channel]
+			var y Publisher = reqbody.(Publisher)
+			m := x.messageBroker.PubM[publisher.Channel]
+			t.Log(m[y.Channel])
 			contentType := w.Header().Get("Content-Type")
 			if contentType != "application/json" {
 				t.Errorf("Want: Content Type as %v", nil)
@@ -137,7 +139,7 @@ func TestRegisterSubscriber(t *testing.T) {
 			},
 		},
 		{
-			name:        "FAILURE:: Register subscriber incomplete data case",
+			name:        "FAILURE:: Register subscriber::Incorrect Input Details",
 			requestBody: dummy,
 			expected_response: temp_struct{
 				Status:  http.StatusBadRequest,
@@ -240,7 +242,7 @@ func TestPublishMessage(t *testing.T) {
 			},
 		},
 		{
-			name:        "FAILURE:: no publisher found",
+			name:        "FAILURE:: No Publisher Found",
 			requestBody: updates,
 			setupFunc: func(i controllerInterface.IController) {
 				/*w := httptest.NewRecorder()
@@ -257,7 +259,7 @@ func TestPublishMessage(t *testing.T) {
 			},
 		},
 		{
-			name:        "FAILURE::Parse error",
+			name:        "FAILURE::Publish Message::Incorrect input details",
 			requestBody: dummy,
 			setupFunc: func(i controllerInterface.IController) {
 				var x *models = i.(*models)
