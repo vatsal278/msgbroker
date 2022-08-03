@@ -232,12 +232,6 @@ func TestRegisterSubscriber(t *testing.T) {
 				var x *models = i.(*models)
 				//var y TempSubscriber = reqbody.(TempSubscriber)
 				m := x.messageBroker.SubM[subscriber.Channel]
-				for {
-					m := x.messageBroker.SubM[subscriber.Channel]
-					if len(m) == 0 {
-						break
-					}
-				}
 				if len(m) != 0 {
 					t.Errorf("Want: %v, Got: %v", "not ok", len(m))
 
