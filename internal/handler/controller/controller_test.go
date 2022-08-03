@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/vatsal278/msgbroker/internal/constants"
 	controllerInterface "github.com/vatsal278/msgbroker/internal/handler"
@@ -39,25 +40,89 @@ func TestRegisterPublisher(t *testing.T) {
 	tests := []struct {
 		name              string
 		requestBody       interface{}
-		ErrorCase         bool
+		ValidateFunc      func(*httptest.ResponseRecorder, controllerInterface.IController, interface{})
 		expected_response temp_struct
 	}{
 		{
 			name:        "Success:: Register Publisher",
 			requestBody: publisher,
-			expected_response: temp_struct{
-				Status:  http.StatusCreated,
-				Message: "Successfully Registered as publisher to the channel",
-				Data:    nil,
+			ValidateFunc: func(w *httptest.ResponseRecorder, i controllerInterface.IController, reqbody interface{}) {
+				var x *models = i.(*models)
+				var y Publisher = reqbody.(Publisher)
+				t.Log(y)
+				m, ok := x.messageBroker.PubM[publisher.Channel]
+				if !ok {
+					t.Errorf("Want: %v, Got: %v", "publisher map", ok)
+				}
+				_, ok = m[publisher.Name]
+				if !ok {
+					t.Errorf("Want: %v, Got: %v", "publisher map", ok)
+				}
+				contentType := w.Header().Get("Content-Type")
+				if contentType != "application/json" {
+					t.Errorf("Want: Content Type as %v", nil)
+				}
+				if w.Code != http.StatusCreated {
+					t.Errorf("Want: %v, Got: %v", http.StatusCreated, w.Code)
+				}
+				response_body, error := ioutil.ReadAll(w.Body)
+				if error != nil {
+					t.Error(error.Error())
+				}
+				var response temp_struct
+				err := json.Unmarshal(response_body, &response)
+				expectedResponse := temp_struct{
+					Status:  http.StatusCreated,
+					Message: "Successfully Registered as publisher to the channel",
+					Data:    nil,
+				}
+				if err != nil {
+					t.Error(error.Error())
+				}
+				if !reflect.DeepEqual(response, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, response)
+				}
 			},
 		},
 		{
 			name:        "FAILURE:: Register Publisher:Incorrect Input Details",
 			requestBody: dummy,
-			expected_response: temp_struct{
-				Status:  http.StatusBadRequest,
-				Message: constants.IncompleteData,
-				Data:    nil,
+			ValidateFunc: func(w *httptest.ResponseRecorder, i controllerInterface.IController, reqbody interface{}) {
+				var x *models = i.(*models)
+				var y tempPublisher = reqbody.(tempPublisher)
+				t.Log(y)
+				m, ok := x.messageBroker.PubM[dummy.Channel]
+				if ok {
+					t.Errorf("Want: %v, Got: %v", "not ok", ok)
+				}
+				_, ok = m[publisher.Name]
+				if ok {
+					t.Errorf("Want: %v, Got: %v", "not ok", ok)
+				}
+				contentType := w.Header().Get("Content-Type")
+				if contentType != "application/json" {
+					t.Errorf("Want: Content Type as %v", nil)
+				}
+				if w.Code != http.StatusBadRequest {
+					t.Errorf("Want: %v, Got: %v", http.StatusBadRequest, w.Code)
+				}
+				response_body, error := ioutil.ReadAll(w.Body)
+				if error != nil {
+					t.Error(error.Error())
+				}
+				var response temp_struct
+				err := json.Unmarshal(response_body, &response)
+				expectedResponse := temp_struct{
+					Status:  http.StatusBadRequest,
+					Message: constants.IncompleteData,
+					Data:    nil,
+				}
+				if err != nil {
+					t.Error(error.Error())
+				}
+				if !reflect.DeepEqual(response, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, response)
+				}
 			},
 		},
 	}
@@ -71,29 +136,7 @@ func TestRegisterPublisher(t *testing.T) {
 			i := NewController()
 			RegisterPub := i.RegisterPublisher()
 			RegisterPub(w, r)
-			var x *models = i.(*models)
-			var y Publisher = reqbody.(Publisher)
-			m := x.messageBroker.PubM[publisher.Channel]
-			t.Log(m[y.Channel])
-			contentType := w.Header().Get("Content-Type")
-			if contentType != "application/json" {
-				t.Errorf("Want: Content Type as %v", nil)
-			}
-			if w.Code != http.StatusOK {
-				t.Errorf("Want: %v, Got: %v", http.StatusOK, w.Code)
-			}
-			response_body, error := ioutil.ReadAll(w.Body)
-			if error != nil {
-				t.Error(error.Error())
-			}
-			var response temp_struct
-			err := json.Unmarshal(response_body, &response)
-			if err != nil {
-				t.Error(error.Error())
-			}
-			if !reflect.DeepEqual(response, tt.expected_response) {
-				t.Errorf("Want: %v, Got: %v", tt.expected_response, response)
-			}
+			tt.ValidateFunc(w, i, reqbody)
 		})
 	}
 }
@@ -120,10 +163,10 @@ func TestRegisterSubscriber(t *testing.T) {
 		CallBack CallBack
 		Channel  int `form:"channel" json:"channel" validate:"required"`
 	}
-	var dummy = TempSubscriber{
+	/*var dummy = TempSubscriber{
 		CallBack: callback,
 		Channel:  1,
-	}
+	}*/
 	tests := []struct {
 		name              string
 		expected_response temp_struct
@@ -138,7 +181,7 @@ func TestRegisterSubscriber(t *testing.T) {
 				Data:    nil,
 			},
 		},
-		{
+		/*{
 			name:        "FAILURE:: Register subscriber::Incorrect Input Details",
 			requestBody: dummy,
 			expected_response: temp_struct{
@@ -146,23 +189,32 @@ func TestRegisterSubscriber(t *testing.T) {
 				Message: constants.IncompleteData,
 				Data:    nil,
 			},
-		},
+		},*/
 	}
+	//creating separate validate func
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			t.Log(w.Code)
-			jsonValue, _ := json.Marshal(tt.requestBody)
+			reqBody := tt.requestBody
+			jsonValue, _ := json.Marshal(reqBody)
 			r := httptest.NewRequest("POST", "/register/subscriber", bytes.NewBuffer(jsonValue))
 			i := NewController()
 			RegisterSub := i.RegisterSubscriber()
 			RegisterSub(w, r)
+			var x *models = i.(*models)
+			var y Subscriber = reqBody.(Subscriber)
+			t.Log(y)
+			//m := x.messageBroker.PubM[publisher.Channel]
+			time.Sleep(1 * time.Second)
+			m := x.messageBroker.SubM[subscriber.Channel]
+			t.Log(m)
 			contentType := w.Header().Get("Content-Type")
 			if contentType != "application/json" {
 				t.Errorf("Want: Content Type as %v", nil)
 			}
-			if w.Code != tt.expected_response.Status {
+			if w.Code != tt.expected_response.Data {
 				t.Errorf("Want: %v, Got: %v", tt.expected_response.Status, w.Code)
 			}
 			response_body, error := ioutil.ReadAll(w.Body)
@@ -336,6 +388,7 @@ func TestNoRouteFound(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
 			w := httptest.NewRecorder()
 			//errorCase := int(tt.ErrorCase)
 			i := NewController()
