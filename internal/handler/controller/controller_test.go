@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/vatsal278/msgbroker/internal/constants"
 	controllerInterface "github.com/vatsal278/msgbroker/internal/handler"
@@ -163,25 +162,63 @@ func TestRegisterSubscriber(t *testing.T) {
 		CallBack CallBack
 		Channel  int `form:"channel" json:"channel" validate:"required"`
 	}
-	/*var dummy = TempSubscriber{
+	var dummy = TempSubscriber{
 		CallBack: callback,
 		Channel:  1,
-	}*/
+	}
 	tests := []struct {
 		name              string
 		expected_response temp_struct
 		requestBody       interface{}
+		ValidateFunc      func(*httptest.ResponseRecorder, controllerInterface.IController, interface{})
 	}{
 		{
 			name:        "Success:: Register Subscriber",
 			requestBody: subscriber,
-			expected_response: temp_struct{
-				Status:  http.StatusCreated,
-				Message: "Successfully Registered as Subscriber to the channel",
-				Data:    nil,
+			ValidateFunc: func(w *httptest.ResponseRecorder, i controllerInterface.IController, reqbody interface{}) {
+				var x *models = i.(*models)
+				var y Subscriber = reqbody.(Subscriber)
+				t.Log(y)
+				//m := x.messageBroker.PubM[publisher.Channel]
+
+				for {
+					m := x.messageBroker.SubM[subscriber.Channel]
+					if len(m) == 1 {
+						break
+					}
+				}
+				m := x.messageBroker.SubM[subscriber.Channel]
+				if len(m) == 0 {
+					t.Errorf("Want: %v, Got: %v", "1", len(m))
+				}
+				contentType := w.Header().Get("Content-Type")
+				if contentType != "application/json" {
+					t.Errorf("Want: Content Type as %v", nil)
+				}
+				expectedResponse := temp_struct{
+					Status:  http.StatusCreated,
+					Message: "Successfully Registered as Subscriber to the channel",
+					Data:    nil,
+				}
+
+				if w.Code != expectedResponse.Status {
+					t.Errorf("Want: %v, Got: %v", expectedResponse.Status, w.Code)
+				}
+				response_body, error := ioutil.ReadAll(w.Body)
+				if error != nil {
+					t.Error(error.Error())
+				}
+				var response temp_struct
+				err := json.Unmarshal(response_body, &response)
+				if err != nil {
+					t.Error(error.Error())
+				}
+				if !reflect.DeepEqual(response, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, response)
+				}
 			},
 		},
-		/*{
+		{
 			name:        "FAILURE:: Register subscriber::Incorrect Input Details",
 			requestBody: dummy,
 			expected_response: temp_struct{
@@ -189,7 +226,47 @@ func TestRegisterSubscriber(t *testing.T) {
 				Message: constants.IncompleteData,
 				Data:    nil,
 			},
-		},*/
+			ValidateFunc: func(w *httptest.ResponseRecorder, i controllerInterface.IController, reqbody interface{}) {
+				var x *models = i.(*models)
+				//var y TempSubscriber = reqbody.(TempSubscriber)
+				m := x.messageBroker.SubM[subscriber.Channel]
+				for {
+					m := x.messageBroker.SubM[subscriber.Channel]
+					if len(m) == 0 {
+						break
+					}
+				}
+				if len(m) != 0 {
+					t.Errorf("Want: %v, Got: %v", "not ok", len(m))
+
+				}
+				contentType := w.Header().Get("Content-Type")
+				if contentType != "application/json" {
+					t.Errorf("Want: Content Type as %v", nil)
+				}
+				expectedResponse := temp_struct{
+					Status:  http.StatusBadRequest,
+					Message: constants.IncompleteData,
+					Data:    nil,
+				}
+
+				if w.Code != expectedResponse.Status {
+					t.Errorf("Want: %v, Got: %v", expectedResponse.Status, w.Code)
+				}
+				response_body, error := ioutil.ReadAll(w.Body)
+				if error != nil {
+					t.Error(error.Error())
+				}
+				var response temp_struct
+				err := json.Unmarshal(response_body, &response)
+				if err != nil {
+					t.Error(error.Error())
+				}
+				if !reflect.DeepEqual(response, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, response)
+				}
+			},
+		},
 	}
 	//creating separate validate func
 	for _, tt := range tests {
@@ -203,32 +280,7 @@ func TestRegisterSubscriber(t *testing.T) {
 			i := NewController()
 			RegisterSub := i.RegisterSubscriber()
 			RegisterSub(w, r)
-			var x *models = i.(*models)
-			var y Subscriber = reqBody.(Subscriber)
-			t.Log(y)
-			//m := x.messageBroker.PubM[publisher.Channel]
-			time.Sleep(1 * time.Second)
-			m := x.messageBroker.SubM[subscriber.Channel]
-			t.Log(m)
-			contentType := w.Header().Get("Content-Type")
-			if contentType != "application/json" {
-				t.Errorf("Want: Content Type as %v", nil)
-			}
-			if w.Code != tt.expected_response.Data {
-				t.Errorf("Want: %v, Got: %v", tt.expected_response.Status, w.Code)
-			}
-			response_body, error := ioutil.ReadAll(w.Body)
-			if error != nil {
-				t.Error(error.Error())
-			}
-			var response temp_struct
-			err := json.Unmarshal(response_body, &response)
-			if err != nil {
-				t.Error(error.Error())
-			}
-			if !reflect.DeepEqual(response, tt.expected_response) {
-				t.Errorf("Want: %v, Got: %v", tt.expected_response, response)
-			}
+			tt.ValidateFunc(w, i, reqBody)
 		})
 	}
 }
