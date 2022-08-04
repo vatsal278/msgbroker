@@ -3,14 +3,17 @@ package controller
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
 
+	"github.com/gorilla/mux"
 	"github.com/vatsal278/msgbroker/internal/constants"
 	controllerInterface "github.com/vatsal278/msgbroker/internal/handler"
+	"github.com/vatsal278/msgbroker/internal/model"
 )
 
 type tempStruct struct {
@@ -280,7 +283,41 @@ func TestRegisterSubscriber(t *testing.T) {
 		})
 	}
 }
+func DummyRegister(url string, method string, t *testing.T, i controllerInterface.IController) {
+	var callback = model.CallBack{
+		HttpMethod:  method,
+		CallbackUrl: url,
+	}
+	var subscriber = model.Subscriber{
+		CallBack: callback,
+		Channel:  "c4",
+	}
+	var m *models = i.(*models)
+	//var y TempSubscriber = reqbody.(TempSubscriber)
+	subs := m.messageBroker.SubM[subscriber.Channel]
 
+	subs = append(subs, subscriber)
+	t.Log(subs)
+	t.Logf("subscriber added %+v", subscriber)
+	m.messageBroker.SubM[subscriber.Channel] = subs
+	t.Log(m.messageBroker.SubM[subscriber.Channel])
+}
+func Testutility() *mux.Router {
+	router := mux.NewRouter()
+	//router.HandleFunc("/register/subscriber", NotifySub()).Methods(http.MethodPost)
+	http.Handle("/", router)
+	fmt.Println("Connected to Test Server")
+
+	return router
+}
+func testClient(t *testing.T, i controllerInterface.IController) {
+	//expected := "dummy data"
+	x := Testutility()
+	svr := httptest.NewServer(x)
+
+	defer svr.Close()
+	DummyRegister(svr.URL, "POST", t, i)
+}
 func TestPublishMessage(t *testing.T) {
 
 	type Publisher struct {
@@ -380,6 +417,7 @@ func TestPublishMessage(t *testing.T) {
 			w := httptest.NewRecorder()
 			jsonValue, _ := json.Marshal(tt.requestBody)
 			r := httptest.NewRequest("POST", "/publish", bytes.NewBuffer(jsonValue))
+			testClient(t, i)
 			Publish := i.PublishMessage()
 			Publish(w, r)
 			contentType := w.Header().Get("Content-Type")
