@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/gorilla/mux"
@@ -292,49 +293,45 @@ func DummyRegister(url string, method string, t *testing.T, i controllerInterfac
 	m.messageBroker.SubM[subscriber.Channel] = subs
 	t.Log(m.messageBroker.SubM[subscriber.Channel])
 }
-func Notify(t *testing.T) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var updates model.Updates
-		var publisher = model.Publisher{
-			Name:    "publisher1",
-			Channel: "c4",
-		}
-		var expectedUpdate = model.Updates{
-			Publisher: publisher,
-			Update:    "Hello World",
-		}
+
+func Testutility(c *T) *mux.Router {
+	router := mux.NewRouter()
+	router.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		defer c.wg.Done()
+		defer c.t.Log("HIT")
 		x, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			t.Log(err.Error())
+			c.t.Log(err.Error())
 		}
-		err = json.Unmarshal(x, &updates)
-		if err != nil {
-			t.Log(err.Error())
+		if !reflect.DeepEqual(string(x), "Hello World") {
+			c.t.Errorf("Want: %v, Got: %v", "Hello World", string(x))
 		}
-		if !reflect.DeepEqual(updates, expectedUpdate) {
-			t.Errorf("Want: %v, Got: %v", expectedUpdate, updates)
-		}
-	}
-}
-func Testutility(t *testing.T) *mux.Router {
-	router := mux.NewRouter()
-	router.HandleFunc("/ping", Notify(t)).Methods(http.MethodPost)
+	}).Methods(http.MethodPost)
 	http.Handle("/", router)
 	fmt.Println("Connected to Test Server")
 
 	return router
 }
-func testClient(t *testing.T, i controllerInterface.IController) {
+func testClient(c *T) {
 	//expected := "dummy data"
 
-	x := Testutility(t)
+	x := Testutility(c)
 	svr := httptest.NewServer(x)
 	url := svr.URL + "/ping"
-	t.Error(url)
-	defer svr.Close()
-	DummyRegister(url, "POST", t, i)
+	c.t.Log(url)
+	c.srv = svr
+	//defer svr.Close()
+	DummyRegister(url, "POST", c.t, c.i)
 
 }
+
+type T struct {
+	srv *httptest.Server
+	t   *testing.T
+	i   controllerInterface.IController
+	wg  *sync.WaitGroup
+}
+
 func TestPublishMessage(t *testing.T) {
 
 	var publisher = model.Publisher{
@@ -364,17 +361,27 @@ func TestPublishMessage(t *testing.T) {
 		Update:    1,
 	}
 
+	tStruct := &T{
+		t:  t,
+		wg: &sync.WaitGroup{},
+	}
+	i := NewController()
+	Publish := i.PublishMessage()
 	tests := []struct {
 		name             string
 		requestBody      interface{}
 		expectedResponse tempStruct
 		setupFunc        func(controllerInterface.IController)
+		validateFunc     func(*httptest.ResponseRecorder)
 	}{
 		{
 			name:        "Success:: Register Subscriber",
 			requestBody: updates,
 			setupFunc: func(i controllerInterface.IController) {
-				testClient(t, i)
+				tStruct.i = i
+				tStruct.wg.Add(1)
+				testClient(tStruct)
+
 				var x *models = i.(*models)
 				m, ok := x.messageBroker.PubM[publisher.Channel]
 				if !ok {
@@ -383,6 +390,35 @@ func TestPublishMessage(t *testing.T) {
 				}
 				x.messageBroker.PubM[publisher.Channel] = m
 				t.Log(x.messageBroker.SubM)
+			},
+			validateFunc: func(w *httptest.ResponseRecorder) {
+				var tempstruct = tempStruct{
+					Status:  http.StatusOK,
+					Message: "notified all subscriber",
+					Data:    nil,
+				}
+				tStruct.wg.Wait()
+				tStruct.srv.Close()
+				contentType := w.Header().Get("Content-Type")
+				if contentType != "application/json" {
+					t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
+				}
+				if w.Code != tempstruct.Status {
+					t.Errorf("Want: %v, Got: %v", tempstruct.Status, w.Code)
+				}
+				responseBody, error := ioutil.ReadAll(w.Body)
+				if error != nil {
+					t.Error(error.Error())
+				}
+				var response tempStruct
+				err := json.Unmarshal(responseBody, &response)
+				if err != nil {
+					t.Error(error.Error())
+				}
+				t.Log(response)
+				if !reflect.DeepEqual(response, tempstruct) {
+					t.Errorf("Want: %v, Got: %v", tempstruct, response)
+				}
 			},
 			expectedResponse: tempStruct{
 				Status:  http.StatusOK,
@@ -423,35 +459,17 @@ func TestPublishMessage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			//golang http test server
-			i := NewController()
 			tt.setupFunc(i)
 			w := httptest.NewRecorder()
 			jsonValue, _ := json.Marshal(tt.requestBody)
 			r := httptest.NewRequest("POST", "/publish", bytes.NewBuffer(jsonValue))
 
-			Publish := i.PublishMessage()
 			Publish(w, r)
 
-			contentType := w.Header().Get("Content-Type")
-			if contentType != "application/json" {
-				t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
+			if tt.validateFunc != nil {
+				tt.validateFunc(w)
 			}
-			if w.Code != tt.expectedResponse.Status {
-				t.Errorf("Want: %v, Got: %v", tt.expectedResponse.Status, w.Code)
-			}
-			responseBody, error := ioutil.ReadAll(w.Body)
-			if error != nil {
-				t.Error(error.Error())
-			}
-			var response tempStruct
-			err := json.Unmarshal(responseBody, &response)
-			if err != nil {
-				t.Error(error.Error())
-			}
-			t.Log(response)
-			if !reflect.DeepEqual(response, tt.expectedResponse) {
-				t.Errorf("Want: %v, Got: %v", tt.expectedResponse, response)
-			}
+
 		})
 	}
 }
