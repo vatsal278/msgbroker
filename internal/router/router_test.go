@@ -10,7 +10,7 @@ import (
 	"github.com/vatsal278/msgbroker/internal/model"
 )
 
-type temp_struct struct {
+type tempStruct struct {
 	Status  int    `json:"status"`
 	Message string `json:"message"`
 	Data    interface{}
@@ -23,15 +23,15 @@ func TestRegisterPublisher(t *testing.T) {
 	}
 
 	tests := []struct {
-		name              string
-		requestBody       interface{}
-		ErrorCase         bool
-		expected_response temp_struct
+		name             string
+		requestBody      interface{}
+		ErrorCase        bool
+		expectedResponse tempStruct
 	}{
 		{
 			name:        "Success:: Router Test",
 			requestBody: publisher,
-			expected_response: temp_struct{
+			expectedResponse: tempStruct{
 				Status:  http.StatusCreated,
 				Message: "Successfully Registered as publisher to the channel",
 				Data:    nil,
