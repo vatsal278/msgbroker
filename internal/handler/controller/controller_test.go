@@ -329,7 +329,7 @@ func Notify(t *testing.T) func(w http.ResponseWriter, r *http.Request) {
 func Testutility(t *testing.T) *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/ping", Notify(t)).Methods(http.MethodPost)
-	http.Handle("/", router)
+	http.Handle("/subscriber", router)
 	fmt.Println("Connected to Test Server")
 
 	return router
@@ -390,6 +390,7 @@ func TestPublishMessage(t *testing.T) {
 			name:        "Success:: Register Subscriber",
 			requestBody: updates,
 			setupFunc: func(i controllerInterface.IController) {
+				testClient(t, i)
 				var x *models = i.(*models)
 				m, ok := x.messageBroker.PubM[publisher.Channel]
 				if !ok {
@@ -439,7 +440,6 @@ func TestPublishMessage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			//golang http test server
 			i := NewController()
-			testClient(t, i)
 			tt.setupFunc(i)
 			w := httptest.NewRecorder()
 			jsonValue, _ := json.Marshal(tt.requestBody)
