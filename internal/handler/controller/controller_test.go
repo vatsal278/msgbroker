@@ -27,7 +27,7 @@ func TestRegisterPublisher(t *testing.T) {
 		Name    string `form:"name" json:"name" validate:"required"`
 		Channel string `form:"channel" json:"channel" validate:"required"`
 	}
-	var publisher = Publisher{
+	var publisher = model.Publisher{
 		Name:    "publisher1",
 		Channel: "c4",
 	}
@@ -50,7 +50,7 @@ func TestRegisterPublisher(t *testing.T) {
 			requestBody: publisher,
 			ValidateFunc: func(w *httptest.ResponseRecorder, i controllerInterface.IController, reqbody interface{}) {
 				var x *models = i.(*models)
-				var y Publisher = reqbody.(Publisher)
+				var y model.Publisher = reqbody.(model.Publisher)
 				t.Log(y)
 
 				m, ok := x.messageBroker.PubM[publisher.Channel]
@@ -158,7 +158,7 @@ func TestRegisterSubscriber(t *testing.T) {
 		CallBack CallBack
 		Channel  string `form:"channel" json:"channel" validate:"required"`
 	}
-	var subscriber = Subscriber{
+	var subscriber = model.Subscriber{
 		CallBack: callback,
 		Channel:  "c4",
 	}
@@ -182,7 +182,7 @@ func TestRegisterSubscriber(t *testing.T) {
 			requestBody: subscriber,
 			ValidateFunc: func(w *httptest.ResponseRecorder, i controllerInterface.IController, reqbody interface{}) {
 				var x *models = i.(*models)
-				var y Subscriber = reqbody.(Subscriber)
+				var y model.Subscriber = reqbody.(model.Subscriber)
 				t.Log(y)
 				//m := x.messageBroker.PubM[publisher.Channel]
 
@@ -329,7 +329,7 @@ func Notify(t *testing.T) func(w http.ResponseWriter, r *http.Request) {
 func Testutility(t *testing.T) *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/ping", Notify(t)).Methods(http.MethodPost)
-	http.Handle("/subscriber", router)
+	http.Handle("/", router)
 	fmt.Println("Connected to Test Server")
 
 	return router
@@ -350,7 +350,7 @@ func TestPublishMessage(t *testing.T) {
 		Name    string `form:"name" json:"name" validate:"required"`
 		Channel string `form:"channel" json:"channel" validate:"required"`
 	}
-	var publisher = Publisher{
+	var publisher = model.Publisher{
 		Name:    "publisher1",
 		Channel: "c4",
 	}
@@ -363,10 +363,10 @@ func TestPublishMessage(t *testing.T) {
 		Channel: "c4",
 	}
 	type Updates struct {
-		Publisher Publisher `form:"publisher" json:"publisher" validate:"required"`
-		Update    string    `form:"update" json:"update" validate:"required"`
+		Publisher model.Publisher `form:"publisher" json:"publisher" validate:"required"`
+		Update    string          `form:"update" json:"update" validate:"required"`
 	}
-	var updates = Updates{
+	var updates = model.Updates{
 		Publisher: publisher,
 		Update:    "Hello World",
 	}
