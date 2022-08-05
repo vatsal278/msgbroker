@@ -3,13 +3,13 @@ package model
 import "sync"
 
 type CallBack struct {
-	HttpMethod  string `validate:"required"`
-	CallbackUrl string `validate:"required"`
+	HttpMethod  string `form:"http_method" json:"http_method" validate:"required"`
+	CallbackUrl string `form:"callback_url" json:"callback_url" validate:"required"`
 }
 
 type Subscriber struct {
-	CallBack CallBack
-	Channel  string `form:"channel" json:"channel" validate:"required"`
+	CallBack CallBack `form:"callback" json:"callback" validate:"required"`
+	Channel  string   `form:"channel" json:"channel" validate:"required"`
 }
 
 type Publisher struct {
@@ -28,9 +28,9 @@ type MessageBroker struct {
 	sync.Mutex
 }
 type Response struct {
-	Status  int    `json:"status"`
-	Message string `json:"message"`
-	Data    interface{}
+	Status  int         `json:"status"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
 }
 
 func (r *Response) Update(status int, msg string, data interface{}) {

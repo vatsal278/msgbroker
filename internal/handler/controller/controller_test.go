@@ -302,9 +302,33 @@ func DummyRegister(url string, method string, t *testing.T, i controllerInterfac
 	m.messageBroker.SubM[subscriber.Channel] = subs
 	t.Log(m.messageBroker.SubM[subscriber.Channel])
 }
-func Testutility() *mux.Router {
+func Notify(t *testing.T) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var updates model.Updates
+		var publisher = model.Publisher{
+			Name:    "publisher1",
+			Channel: "c4",
+		}
+		var expectedUpdate = model.Updates{
+			Publisher: publisher,
+			Update:    "Hello World",
+		}
+		x, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Log(err.Error())
+		}
+		err = json.Unmarshal(x, &updates)
+		if err != nil {
+			t.Log(err.Error())
+		}
+		if !reflect.DeepEqual(updates, expectedUpdate) {
+			t.Errorf("Want: %v, Got: %v", expectedUpdate, updates)
+		}
+	}
+}
+func Testutility(t *testing.T) *mux.Router {
 	router := mux.NewRouter()
-	//router.HandleFunc("/register/subscriber", NotifySub()).Methods(http.MethodPost)
+	router.HandleFunc("/ping", Notify(t)).Methods(http.MethodPost)
 	http.Handle("/", router)
 	fmt.Println("Connected to Test Server")
 
@@ -312,11 +336,13 @@ func Testutility() *mux.Router {
 }
 func testClient(t *testing.T, i controllerInterface.IController) {
 	//expected := "dummy data"
-	x := Testutility()
-	svr := httptest.NewServer(x)
 
+	x := Testutility(t)
+	svr := httptest.NewServer(x)
+	url := svr.URL + "/ping"
 	defer svr.Close()
-	DummyRegister(svr.URL, "POST", t, i)
+	DummyRegister(url, "POST", t, i)
+
 }
 func TestPublishMessage(t *testing.T) {
 
@@ -371,6 +397,7 @@ func TestPublishMessage(t *testing.T) {
 					m[publisher.Name] = struct{}{}
 				}
 				x.messageBroker.PubM[publisher.Channel] = m
+				t.Log(x.messageBroker.SubM)
 			},
 			expectedResponse: tempStruct{
 				Status:  http.StatusOK,
@@ -412,14 +439,15 @@ func TestPublishMessage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			//golang http test server
 			i := NewController()
-
+			testClient(t, i)
 			tt.setupFunc(i)
 			w := httptest.NewRecorder()
 			jsonValue, _ := json.Marshal(tt.requestBody)
 			r := httptest.NewRequest("POST", "/publish", bytes.NewBuffer(jsonValue))
-			testClient(t, i)
+
 			Publish := i.PublishMessage()
 			Publish(w, r)
+
 			contentType := w.Header().Get("Content-Type")
 			if contentType != "application/json" {
 				t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
