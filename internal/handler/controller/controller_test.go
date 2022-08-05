@@ -23,10 +23,6 @@ type tempStruct struct {
 }
 
 func TestRegisterPublisher(t *testing.T) {
-	type Publisher struct {
-		Name    string `form:"name" json:"name" validate:"required"`
-		Channel string `form:"channel" json:"channel" validate:"required"`
-	}
 	var publisher = model.Publisher{
 		Name:    "publisher1",
 		Channel: "c4",
@@ -146,25 +142,19 @@ func TestRegisterPublisher(t *testing.T) {
 }
 
 func TestRegisterSubscriber(t *testing.T) {
-	type CallBack struct {
-		HttpMethod  string `validate:"required"`
-		CallbackUrl string `validate:"required"`
-	}
-	var callback = CallBack{
+
+	var callback = model.CallBack{
 		HttpMethod:  "GET",
 		CallbackUrl: "http://localhost:8083/pong",
 	}
-	type Subscriber struct {
-		CallBack CallBack
-		Channel  string `form:"channel" json:"channel" validate:"required"`
-	}
+
 	var subscriber = model.Subscriber{
 		CallBack: callback,
 		Channel:  "c4",
 	}
 
 	type TempSubscriber struct {
-		CallBack CallBack
+		CallBack model.CallBack
 		Channel  int `form:"channel" json:"channel" validate:"required"`
 	}
 	var dummy = TempSubscriber{
@@ -340,16 +330,13 @@ func testClient(t *testing.T, i controllerInterface.IController) {
 	x := Testutility(t)
 	svr := httptest.NewServer(x)
 	url := svr.URL + "/ping"
+	t.Error(url)
 	defer svr.Close()
 	DummyRegister(url, "POST", t, i)
 
 }
 func TestPublishMessage(t *testing.T) {
 
-	type Publisher struct {
-		Name    string `form:"name" json:"name" validate:"required"`
-		Channel string `form:"channel" json:"channel" validate:"required"`
-	}
 	var publisher = model.Publisher{
 		Name:    "publisher1",
 		Channel: "c4",
@@ -362,10 +349,7 @@ func TestPublishMessage(t *testing.T) {
 		Name:    1,
 		Channel: "c4",
 	}
-	type Updates struct {
-		Publisher model.Publisher `form:"publisher" json:"publisher" validate:"required"`
-		Update    string          `form:"update" json:"update" validate:"required"`
-	}
+
 	var updates = model.Updates{
 		Publisher: publisher,
 		Update:    "Hello World",
