@@ -37,10 +37,10 @@ func TestRegisterPublisher(t *testing.T) {
 		Channel: "c4",
 	}
 	tests := []struct {
-		name              string
-		requestBody       interface{}
-		ValidateFunc      func(*httptest.ResponseRecorder, controllerInterface.IController, interface{})
-		expected_response tempStruct
+		name             string
+		requestBody      interface{}
+		ValidateFunc     func(*httptest.ResponseRecorder, controllerInterface.IController, interface{})
+		expectedResponse tempStruct
 	}{
 		{
 			name:        "Success:: Register Publisher",
@@ -166,10 +166,10 @@ func TestRegisterSubscriber(t *testing.T) {
 		Channel:  1,
 	}
 	tests := []struct {
-		name              string
-		expected_response tempStruct
-		requestBody       interface{}
-		ValidateFunc      func(*httptest.ResponseRecorder, controllerInterface.IController, interface{})
+		name             string
+		expectedResponse tempStruct
+		requestBody      interface{}
+		ValidateFunc     func(*httptest.ResponseRecorder, controllerInterface.IController, interface{})
 	}{
 		{
 			name:        "Success:: Register Subscriber",
@@ -220,7 +220,7 @@ func TestRegisterSubscriber(t *testing.T) {
 		{
 			name:        "FAILURE:: Register subscriber::Incorrect Input Details",
 			requestBody: dummy,
-			expected_response: tempStruct{
+			expectedResponse: tempStruct{
 				Status:  http.StatusBadRequest,
 				Message: constants.IncompleteData,
 				Data:    nil,
@@ -297,7 +297,7 @@ func DummyRegister(url string, method string, t *testing.T, i controllerInterfac
 	t.Log(m.messageBroker.SubM[subscriber.Channel])
 }
 
-func Testutility(c *NewTestStruct) *mux.Router {
+func Testutility(c *TestServer) *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		defer c.wg.Done()
@@ -315,7 +315,7 @@ func Testutility(c *NewTestStruct) *mux.Router {
 
 	return router
 }
-func testClient(c *NewTestStruct) {
+func testClient(c *TestServer) {
 	//expected := "dummy data"
 
 	x := Testutility(c)
@@ -328,7 +328,7 @@ func testClient(c *NewTestStruct) {
 
 }
 
-type NewTestStruct struct {
+type TestServer struct {
 	srv *httptest.Server
 	t   *testing.T
 	i   controllerInterface.IController
@@ -364,7 +364,7 @@ func TestPublishMessage(t *testing.T) {
 		Update:    1,
 	}
 
-	tStruct := &NewTestStruct{
+	tStruct := &TestServer{
 		t:  t,
 		wg: &sync.WaitGroup{},
 	}
@@ -377,7 +377,7 @@ func TestPublishMessage(t *testing.T) {
 		validateFunc     func(*httptest.ResponseRecorder)
 	}{
 		{
-			name:        "Success:: Register Subscriber",
+			name:        "Success:: Publish Message",
 			requestBody: updates,
 			setupFunc: func(i controllerInterface.IController) {
 				tStruct.i = i

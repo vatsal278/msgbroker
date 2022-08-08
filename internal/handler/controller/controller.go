@@ -62,7 +62,7 @@ func (m *models) RegisterSubscriber() func(w http.ResponseWriter, r *http.Reques
 			log.Println(err.Error())
 			return
 		}
-
+		log.Print(subscriber)
 		go func(s model.Subscriber) {
 			m.messageBroker.Lock()
 			defer m.messageBroker.Unlock()
