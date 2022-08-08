@@ -294,7 +294,7 @@ func DummyRegister(url string, method string, t *testing.T, i controllerInterfac
 	t.Log(m.messageBroker.SubM[subscriber.Channel])
 }
 
-func Testutility(c *T) *mux.Router {
+func Testutility(c *NewTestStruct) *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		defer c.wg.Done()
@@ -312,7 +312,7 @@ func Testutility(c *T) *mux.Router {
 
 	return router
 }
-func testClient(c *T) {
+func testClient(c *NewTestStruct) {
 	//expected := "dummy data"
 
 	x := Testutility(c)
@@ -325,7 +325,7 @@ func testClient(c *T) {
 
 }
 
-type T struct {
+type NewTestStruct struct {
 	srv *httptest.Server
 	t   *testing.T
 	i   controllerInterface.IController
@@ -361,7 +361,7 @@ func TestPublishMessage(t *testing.T) {
 		Update:    1,
 	}
 
-	tStruct := &T{
+	tStruct := &NewTestStruct{
 		t:  t,
 		wg: &sync.WaitGroup{},
 	}
