@@ -13,7 +13,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"name\": \"publisher1\",\r\n    \"channel\": \"c1\"\r\n}",
+					"raw": "{\r\n    \"channel\": \"c4\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -71,7 +71,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"publisher\": {\r\n        \"name\": \"publisher1\",\r\n        \"channel\": \"c1\"\r\n    },\r\n    \"update\": \"Hello World\"\r\n}",
+					"raw": "{\r\n    \"publisher\": {\r\n        \"id\": \"318da375-895c-42b3-8829-023e9cb42f8c\",\r\n        \"channel\": \"c4\"\r\n    },\r\n    \"update\": \"{\\\"data\\\":\\\"hello world\\\"}\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"

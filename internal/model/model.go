@@ -2,6 +2,8 @@ package model
 
 import (
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 type CallBack struct {
@@ -16,7 +18,7 @@ type Subscriber struct {
 
 type Publisher struct {
 	//Name    string `form:"name" json:"name" validate:"required"`
-	Id      string
+	Id      string `form:"id" json:"id"`
 	Channel string `form:"channel" json:"channel" validate:"required"`
 }
 
@@ -31,7 +33,7 @@ type MessageBroker struct {
 	sync.Mutex
 }
 type Data struct {
-	Id string
+	Id uuid.UUID
 }
 type Response struct {
 	Status  int         `json:"status"`

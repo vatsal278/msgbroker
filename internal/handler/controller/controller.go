@@ -38,9 +38,9 @@ func (m *models) RegisterPublisher() func(w http.ResponseWriter, r *http.Request
 			return
 		}
 		var data = model.Data{
-			Id: uuid.New().String(),
+			Id: uuid.New(),
 		}
-		publisher.Id = data.Id
+		publisher.Id = data.Id.String()
 		x, ok := m.messageBroker.PubM[publisher.Channel]
 		if !ok {
 			x = make(map[string]struct{})
