@@ -342,10 +342,6 @@ func TestPublishMessage(t *testing.T) {
 		Name    interface{} `validate:"required"`
 		Channel string      `form:"channel" json:"channel" validate:"required"`
 	}
-	var tempPublisher = TempPublisher{
-		Name:    1,
-		Channel: "c4",
-	}
 
 	var updates = model.Updates{
 		Publisher: publisher,
@@ -356,6 +352,10 @@ func TestPublishMessage(t *testing.T) {
 		Publisher TempPublisher `form:"publisher" json:"publisher" validate:"required"`
 		Update    int           `form:"update" json:"update" validate:"required"`
 	}
+	var tempPublisher = TempPublisher{
+		Name:    1,
+		Channel: "c4",
+	}
 	var dummy = TempUpdates{
 		Publisher: tempPublisher,
 		Update:    1,
@@ -365,8 +365,7 @@ func TestPublishMessage(t *testing.T) {
 		t:  t,
 		wg: &sync.WaitGroup{},
 	}
-	i := NewController()
-	Publish := i.PublishMessage()
+
 	tests := []struct {
 		name             string
 		requestBody      interface{}
@@ -431,6 +430,33 @@ func TestPublishMessage(t *testing.T) {
 			requestBody: updates,
 			setupFunc: func(i controllerInterface.IController) {
 			},
+			validateFunc: func(w *httptest.ResponseRecorder) {
+				var tempstruct = tempStruct{
+					Status:  http.StatusNotFound,
+					Message: "No publisher found with the specified name for specified channel",
+					Data:    nil,
+				}
+				contentType := w.Header().Get("Content-Type")
+				if contentType != "application/json" {
+					t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
+				}
+				if w.Code != tempstruct.Status {
+					t.Errorf("Want: %v, Got: %v", tempstruct.Status, w.Code)
+				}
+				responseBody, error := ioutil.ReadAll(w.Body)
+				if error != nil {
+					t.Error(error.Error())
+				}
+				var response tempStruct
+				err := json.Unmarshal(responseBody, &response)
+				if err != nil {
+					t.Error(error.Error())
+				}
+				t.Log(response)
+				if !reflect.DeepEqual(response, tempstruct) {
+					t.Errorf("Want: %v, Got: %v", tempstruct, response)
+				}
+			},
 			expectedResponse: tempStruct{
 				Status:  http.StatusNotFound,
 				Message: "No publisher found with the specified name for specified channel",
@@ -449,6 +475,33 @@ func TestPublishMessage(t *testing.T) {
 				}
 				x.messageBroker.PubM[publisher.Channel] = m
 			},
+			validateFunc: func(w *httptest.ResponseRecorder) {
+				var tempstruct = tempStruct{
+					Status:  http.StatusBadRequest,
+					Message: constants.IncompleteData,
+					Data:    nil,
+				}
+				contentType := w.Header().Get("Content-Type")
+				if contentType != "application/json" {
+					t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
+				}
+				if w.Code != tempstruct.Status {
+					t.Errorf("Want: %v, Got: %v", tempstruct.Status, w.Code)
+				}
+				responseBody, error := ioutil.ReadAll(w.Body)
+				if error != nil {
+					t.Error(error.Error())
+				}
+				var response tempStruct
+				err := json.Unmarshal(responseBody, &response)
+				if err != nil {
+					t.Error(error.Error())
+				}
+				t.Log(response)
+				if !reflect.DeepEqual(response, tempstruct) {
+					t.Errorf("Want: %v, Got: %v", tempstruct, response)
+				}
+			},
 			expectedResponse: tempStruct{
 				Status:  http.StatusBadRequest,
 				Message: constants.IncompleteData,
@@ -459,6 +512,8 @@ func TestPublishMessage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			//golang http test server
+			i := NewController()
+			Publish := i.PublishMessage()
 			tt.setupFunc(i)
 			w := httptest.NewRecorder()
 			jsonValue, _ := json.Marshal(tt.requestBody)
