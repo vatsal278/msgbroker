@@ -18,7 +18,7 @@ type tempStruct struct {
 
 func TestRegisterPublisher(t *testing.T) {
 	var publisher = model.Publisher{
-		Name:    "publisher1",
+		Id:      "publisher1",
 		Channel: "c4",
 	}
 

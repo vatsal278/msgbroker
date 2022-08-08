@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/vatsal278/msgbroker/internal/constants"
 	controllerInterface "github.com/vatsal278/msgbroker/internal/handler"
 	"github.com/vatsal278/msgbroker/internal/model"
@@ -36,14 +37,18 @@ func (m *models) RegisterPublisher() func(w http.ResponseWriter, r *http.Request
 			log.Println(err.Error())
 			return
 		}
-
+		var data = model.Data{
+			Id: uuid.New().String(),
+		}
+		publisher.Id = data.Id
 		x, ok := m.messageBroker.PubM[publisher.Channel]
 		if !ok {
 			x = make(map[string]struct{})
-			x[publisher.Name] = struct{}{}
+			x[publisher.Id] = struct{}{}
 		}
 		m.messageBroker.PubM[publisher.Channel] = x
-		responseWriter.ResponseWriter(w, http.StatusCreated, "Successfully Registered as publisher to the channel", nil, &model.Response{})
+
+		responseWriter.ResponseWriter(w, http.StatusCreated, "Successfully Registered as publisher to the channel", data, &model.Response{})
 		log.Print("Successfully Registered as publisher to the channel")
 	}
 }
@@ -89,7 +94,7 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 		}
 
 		pubm := m.messageBroker.PubM[updates.Publisher.Channel]
-		_, ok := pubm[updates.Publisher.Name]
+		_, ok := pubm[updates.Publisher.Id]
 		if !ok {
 			responseWriter.ResponseWriter(w, http.StatusNotFound, "No publisher found with the specified name for specified channel", nil, &model.Response{})
 			log.Println("No publisher found with the specified name for specified channel")

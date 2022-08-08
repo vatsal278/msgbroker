@@ -25,7 +25,7 @@ type tempStruct struct {
 
 func TestRegisterPublisher(t *testing.T) {
 	var publisher = model.Publisher{
-		Name:    "publisher1",
+		Id:      "publisher1",
 		Channel: "c4",
 	}
 	type tempPublisher struct {
@@ -54,7 +54,7 @@ func TestRegisterPublisher(t *testing.T) {
 				if !ok {
 					t.Errorf("Want: %v, Got: %v", "publisher map", ok)
 				}
-				_, ok = m[publisher.Name]
+				_, ok = m[publisher.Id]
 				if !ok {
 					t.Errorf("Want: %v, Got: %v", "publisher map", ok)
 				}
@@ -79,8 +79,11 @@ func TestRegisterPublisher(t *testing.T) {
 				if err != nil {
 					t.Error(error.Error())
 				}
-				if !reflect.DeepEqual(response, expectedResponse) {
-					t.Errorf("Want: %v, Got: %v", expectedResponse, response)
+				if !reflect.DeepEqual(response.Status, expectedResponse.Status) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse.Status, response.Status)
+				}
+				if !reflect.DeepEqual(response.Message, expectedResponse.Message) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse.Message, response.Message)
 				}
 			},
 		},
@@ -96,7 +99,7 @@ func TestRegisterPublisher(t *testing.T) {
 				if ok {
 					t.Errorf("Want: %v, Got: %v", "not ok", ok)
 				}
-				_, ok = m[publisher.Name]
+				_, ok = m[publisher.Id]
 				if ok {
 					t.Errorf("Want: %v, Got: %v", "not ok", ok)
 				}
@@ -335,11 +338,11 @@ type NewTestStruct struct {
 func TestPublishMessage(t *testing.T) {
 
 	var publisher = model.Publisher{
-		Name:    "publisher1",
+		Id:      "publisher1",
 		Channel: "c4",
 	}
 	type TempPublisher struct {
-		Name    interface{} `validate:"required"`
+		Id      interface{} `validate:"required"`
 		Channel string      `form:"channel" json:"channel" validate:"required"`
 	}
 
@@ -353,7 +356,7 @@ func TestPublishMessage(t *testing.T) {
 		Update    int           `form:"update" json:"update" validate:"required"`
 	}
 	var tempPublisher = TempPublisher{
-		Name:    1,
+		Id:      1,
 		Channel: "c4",
 	}
 	var dummy = TempUpdates{
@@ -385,7 +388,7 @@ func TestPublishMessage(t *testing.T) {
 				m, ok := x.messageBroker.PubM[publisher.Channel]
 				if !ok {
 					m = make(map[string]struct{})
-					m[publisher.Name] = struct{}{}
+					m[publisher.Id] = struct{}{}
 				}
 				x.messageBroker.PubM[publisher.Channel] = m
 				t.Log(x.messageBroker.SubM)
@@ -471,7 +474,7 @@ func TestPublishMessage(t *testing.T) {
 				m, ok := x.messageBroker.PubM[publisher.Channel]
 				if !ok {
 					m = make(map[string]struct{})
-					m[publisher.Name] = struct{}{}
+					m[publisher.Id] = struct{}{}
 				}
 				x.messageBroker.PubM[publisher.Channel] = m
 			},

@@ -1,6 +1,8 @@
 package model
 
-import "sync"
+import (
+	"sync"
+)
 
 type CallBack struct {
 	HttpMethod  string `form:"http_method" json:"http_method" validate:"required"`
@@ -13,7 +15,8 @@ type Subscriber struct {
 }
 
 type Publisher struct {
-	Name    string `form:"name" json:"name" validate:"required"`
+	//Name    string `form:"name" json:"name" validate:"required"`
+	Id      string
 	Channel string `form:"channel" json:"channel" validate:"required"`
 }
 
@@ -26,6 +29,9 @@ type MessageBroker struct {
 	PubM map[string]map[string]struct{} // 1st map's key is channel, 2nd map's key is publisher name
 	SubM map[string][]Subscriber
 	sync.Mutex
+}
+type Data struct {
+	Id string
 }
 type Response struct {
 	Status  int         `json:"status"`
