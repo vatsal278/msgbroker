@@ -25,16 +25,14 @@ type tempStruct struct {
 
 func TestRegisterPublisher(t *testing.T) {
 	var publisher = model.Publisher{
-		Id:      "publisher1",
+		Id:      "57409864-9a6e-4595-a8fa-ac7e3a61da74",
 		Channel: "c4",
 	}
 	type tempPublisher struct {
-		Name    interface{} `validate:"required"`
-		Channel string      `form:"channel" json:"channel" validate:"required"`
+		Channel interface{} `form:"channel" json:"channel" validate:"required"`
 	}
 	var dummy = tempPublisher{
-		Name:    1,
-		Channel: "c4",
+		Channel: 1,
 	}
 	tests := []struct {
 		name             string
@@ -50,14 +48,11 @@ func TestRegisterPublisher(t *testing.T) {
 				var y model.Publisher = reqbody.(model.Publisher)
 				t.Log(y)
 
-				m, ok := x.messageBroker.PubM[publisher.Channel]
+				_, ok := x.messageBroker.PubM[publisher.Channel]
 				if !ok {
 					t.Errorf("Want: %v, Got: %v", "publisher map", ok)
 				}
-				_, ok = m[publisher.Id]
-				if !ok {
-					t.Errorf("Want: %v, Got: %v", "publisher map", ok)
-				}
+
 				contentType := w.Header().Get("Content-Type")
 				if contentType != "application/json" {
 					t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
@@ -91,18 +86,10 @@ func TestRegisterPublisher(t *testing.T) {
 			name:        "FAILURE:: Register Publisher:Incorrect Input Details",
 			requestBody: dummy,
 			ValidateFunc: func(w *httptest.ResponseRecorder, i controllerInterface.IController, reqbody interface{}) {
-				var x *models = i.(*models)
+
 				var y tempPublisher = reqbody.(tempPublisher)
 				t.Log(y)
 
-				m, ok := x.messageBroker.PubM[dummy.Channel]
-				if ok {
-					t.Errorf("Want: %v, Got: %v", "not ok", ok)
-				}
-				_, ok = m[publisher.Id]
-				if ok {
-					t.Errorf("Want: %v, Got: %v", "not ok", ok)
-				}
 				contentType := w.Header().Get("Content-Type")
 				if contentType != "application/json" {
 					t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
