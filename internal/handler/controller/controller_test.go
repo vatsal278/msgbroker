@@ -338,7 +338,7 @@ type TestServer struct {
 func TestPublishMessage(t *testing.T) {
 
 	var publisher = model.Publisher{
-		Id:      "publisher1",
+		Id:      "b2ae109d-1382-4b1c-a8ab-5a9d04555e4e",
 		Channel: "c4",
 	}
 	var updates = model.Updates{

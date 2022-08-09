@@ -37,10 +37,8 @@ func (m *models) RegisterPublisher() func(w http.ResponseWriter, r *http.Request
 			log.Println(err.Error())
 			return
 		}
-		var data = model.Data{
-			Id: uuid.New(),
-		}
-		publisher.Id = data.Id.String()
+
+		publisher.Id = uuid.New().String()
 		x, ok := m.messageBroker.PubM[publisher.Channel]
 		if !ok {
 			x = make(map[string]struct{})
@@ -48,7 +46,9 @@ func (m *models) RegisterPublisher() func(w http.ResponseWriter, r *http.Request
 		}
 		m.messageBroker.PubM[publisher.Channel] = x
 
-		responseWriter.ResponseWriter(w, http.StatusCreated, "Successfully Registered as publisher to the channel", data, &model.Response{})
+		responseWriter.ResponseWriter(w, http.StatusCreated, "Successfully Registered as publisher to the channel", map[string]interface{}{
+			"id": publisher.Id,
+		}, &model.Response{})
 		log.Print("Successfully Registered as publisher to the channel")
 	}
 }
