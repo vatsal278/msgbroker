@@ -18,7 +18,7 @@ type Subscriber struct {
 
 type Publisher struct {
 	//Name    string `form:"name" json:"name" validate:"required"`
-	Id      string `form:"id" json:"id"`
+	Id      string
 	Channel string `form:"channel" json:"channel" validate:"required"`
 }
 

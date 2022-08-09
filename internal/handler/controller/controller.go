@@ -87,8 +87,16 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var updates model.Updates
 		err := parser.ParseAndValidateRequest(r.Body, &updates)
+
 		if err != nil {
 			responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.IncompleteData, nil, &model.Response{})
+			log.Println(err.Error())
+			return
+		}
+		_, err = uuid.Parse(updates.Publisher.Id)
+
+		if err != nil {
+			responseWriter.ResponseWriter(w, http.StatusBadRequest, "Invalid UUID", nil, &model.Response{})
 			log.Println(err.Error())
 			return
 		}
