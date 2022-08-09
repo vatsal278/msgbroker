@@ -350,13 +350,10 @@ func TestPublishMessage(t *testing.T) {
 		Channel string      `form:"channel" json:"channel" validate:"required"`
 	}
 	var publisher1 = model.Publisher{
-		Id:      "b2ae109d-1382-4b1c-a8ab-5a9d04555e4e",
+		Id:      "Publisher",
 		Channel: "c4",
 	}
-	var updates2 = model.Updates{
-		Publisher: publisher1,
-		Update:    "Hello World",
-	}
+
 	var tempPublisher = TempPublisher{
 		Id:      1,
 		Channel: "c4",
@@ -435,8 +432,11 @@ func TestPublishMessage(t *testing.T) {
 			},
 		},
 		{
-			name:        "FAILURE::Publish Message::Incorrect UUID",
-			requestBody: updates,
+			name: "FAILURE::Publish Message::Incorrect UUID",
+			requestBody: model.Updates{
+				Publisher: publisher1,
+				Update:    "Hello World",
+			},
 			setupFunc: func(i controllerInterface.IController) {
 			},
 			validateFunc: func(w *httptest.ResponseRecorder) {
@@ -473,7 +473,7 @@ func TestPublishMessage(t *testing.T) {
 		},
 		{
 			name:        "FAILURE::Publish Message::No Publisher Found",
-			requestBody: updates2,
+			requestBody: updates,
 			setupFunc: func(i controllerInterface.IController) {
 			},
 			validateFunc: func(w *httptest.ResponseRecorder) {
