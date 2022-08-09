@@ -123,7 +123,7 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 		}
 		PublicKey := PrivateKey.PublicKey
 		//Encrypt Miryan Message
-		message := updates.Update.Msg
+		message := updates.Update
 		label := []byte("")
 		hash := sha256.New()
 
@@ -133,21 +133,21 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 			fmt.Println(err.Error())
 			return
 		}
-		log.Print(ciphertext)
+		log.Print(PrivateKey)
 		plainText, err := rsa.DecryptOAEP(hash, rand.Reader, PrivateKey, ciphertext, label)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		updates.Update.Msg = string(ciphertext)
-		updates.Update.PublicKey = PrivateKey
+		updates.Update = string(ciphertext)
+
 		log.Print(plainText)
 
 		for _, v := range m.messageBroker.SubM[updates.Publisher.Channel] {
 			go func(v model.Subscriber) {
-				reqBody := []byte(updates.Update.Msg)
-				x := []byte(updates.Update.PublicKey)
-				reqBody = append(reqBody, x...)
+				reqBody := []byte(updates.Update)
+				//x := []byte(updates.Update.PublicKey)
+				//reqBody = append(reqBody)
 				timeout := time.Duration(2 * time.Second)
 				client := http.Client{
 					Timeout: timeout,

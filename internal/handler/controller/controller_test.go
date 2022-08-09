@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"sync"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/vatsal278/msgbroker/internal/constants"
 	controllerInterface "github.com/vatsal278/msgbroker/internal/handler"
@@ -48,9 +50,12 @@ func TestRegisterPublisher(t *testing.T) {
 				var y model.Publisher = reqbody.(model.Publisher)
 				t.Log(y)
 
-				_, ok := x.messageBroker.PubM[publisher.Channel]
+				m, ok := x.messageBroker.PubM[publisher.Channel]
 				if !ok {
 					t.Errorf("Want: %v, Got: %v", "publisher map", ok)
+				}
+				if m == nil {
+					t.Errorf("Want: %v, Got: %v", "publisher map", m)
 				}
 
 				contentType := w.Header().Get("Content-Type")
@@ -69,7 +74,9 @@ func TestRegisterPublisher(t *testing.T) {
 				expectedResponse := tempStruct{
 					Status:  http.StatusCreated,
 					Message: "Successfully Registered as publisher to the channel",
-					Data:    nil,
+					Data: map[string]interface{}{
+						"id": publisher.Id,
+					},
 				}
 				if err != nil {
 					t.Error(error.Error())
@@ -80,16 +87,27 @@ func TestRegisterPublisher(t *testing.T) {
 				if !reflect.DeepEqual(response.Message, expectedResponse.Message) {
 					t.Errorf("Want: %v, Got: %v", expectedResponse.Message, response.Message)
 				}
+				b := response.Data
+				var a map[string]interface{} = b.(map[string]interface{})
+				var z string = a["id"].(string)
+				_, err = uuid.Parse(z)
+				if err != nil {
+					log.Print(err.Error())
+				}
+
 			},
 		},
 		{
 			name:        "FAILURE:: Register Publisher:Incorrect Input Details",
 			requestBody: dummy,
 			ValidateFunc: func(w *httptest.ResponseRecorder, i controllerInterface.IController, reqbody interface{}) {
-
+				var x *models = i.(*models)
 				var y tempPublisher = reqbody.(tempPublisher)
 				t.Log(y)
-
+				m := x.messageBroker.PubM[publisher.Channel]
+				if m != nil {
+					t.Errorf("Want: %v, Got: %v", nil, m)
+				}
 				contentType := w.Header().Get("Content-Type")
 				if contentType != "application/json" {
 					t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
@@ -202,6 +220,7 @@ func TestRegisterSubscriber(t *testing.T) {
 				if !reflect.DeepEqual(response, expectedResponse) {
 					t.Errorf("Want: %v, Got: %v", expectedResponse, response)
 				}
+
 			},
 		},
 		{
