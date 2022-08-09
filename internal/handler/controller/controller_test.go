@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -92,7 +91,7 @@ func TestRegisterPublisher(t *testing.T) {
 				var z string = a["id"].(string)
 				_, err = uuid.Parse(z)
 				if err != nil {
-					log.Print(err.Error())
+					t.Log(err.Error())
 				}
 
 			},
