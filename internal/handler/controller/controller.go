@@ -40,11 +40,15 @@ func (m *models) RegisterPublisher() func(w http.ResponseWriter, r *http.Request
 
 		publisher.Id = uuid.New().String()
 		x, ok := m.messageBroker.PubM[publisher.Channel]
+		log.Print(x)
 		if !ok {
 			x = make(map[string]struct{})
+			log.Print(publisher.Id)
 			x[publisher.Id] = struct{}{}
 		}
+		x[publisher.Id] = struct{}{}
 		m.messageBroker.PubM[publisher.Channel] = x
+		log.Print(m.messageBroker.PubM)
 
 		responseWriter.ResponseWriter(w, http.StatusCreated, "Successfully Registered as publisher to the channel", map[string]interface{}{
 			"id": publisher.Id,
