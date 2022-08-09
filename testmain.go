@@ -16,13 +16,16 @@ func main() {
 			log.Print(err)
 			return
 		}
+		log.Print(1)
 		defer c.Request.Body.Close()
 		var x map[string]interface{}
 		err = json.Unmarshal(body, &x)
+		log.Print(2)
 		if err != nil {
 			log.Print(err)
 			return
 		}
+		log.Print(3)
 		log.Printf("%+v", x)
 	})
 	r.GET("/pong", func(c *gin.Context) {

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"crypto/rsa"
 	"sync"
 )
 
@@ -21,8 +22,13 @@ type Publisher struct {
 }
 
 type Updates struct {
-	Publisher Publisher `form:"publisher" json:"publisher" validate:"required"`
-	Update    string    `form:"update" json:"update" validate:"required"`
+	Publisher Publisher  `form:"publisher" json:"publisher" validate:"required"`
+	Update    UpdateData `form:"update" json:"update" validate:"required"`
+}
+
+type UpdateData struct {
+	Msg       string
+	PublicKey *rsa.PrivateKey
 }
 
 type MessageBroker struct {

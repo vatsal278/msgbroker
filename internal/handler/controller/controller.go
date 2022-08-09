@@ -2,6 +2,10 @@ package controller
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"fmt"
 	"log"
 	"net/http"
 	"reflect"
@@ -112,11 +116,38 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 			log.Println("No publisher found with the specified name for specified channel")
 			return
 		}
+		PrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+		PublicKey := PrivateKey.PublicKey
+		//Encrypt Miryan Message
+		message := updates.Update.Msg
+		label := []byte("")
+		hash := sha256.New()
+
+		ciphertext, err := rsa.EncryptOAEP(hash, rand.Reader, &PublicKey, []byte(message), label)
+
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+		log.Print(ciphertext)
+		plainText, err := rsa.DecryptOAEP(hash, rand.Reader, PrivateKey, ciphertext, label)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		updates.Update.Msg = string(ciphertext)
+		updates.Update.PublicKey = PrivateKey
+		log.Print(plainText)
 
 		for _, v := range m.messageBroker.SubM[updates.Publisher.Channel] {
 			go func(v model.Subscriber) {
-				reqBody := []byte(updates.Update)
-
+				reqBody := []byte(updates.Update.Msg)
+				x := []byte(updates.Update.PublicKey)
+				reqBody = append(reqBody, x...)
 				timeout := time.Duration(2 * time.Second)
 				client := http.Client{
 					Timeout: timeout,
