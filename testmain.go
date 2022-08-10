@@ -1,9 +1,6 @@
 package main
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/sha256"
 	"encoding/json"
 	"io/ioutil"
 	"log"
@@ -37,9 +34,6 @@ func main() {
 			log.Print(err)
 			return
 		}
-		label := []byte("")
-		hash := sha256.New()
-		plainText, err := rsa.DecryptOAEP(hash, rand.Reader, PrivateKey, body, label)
 		defer c.Request.Body.Close()
 		var x map[string]interface{}
 		err = json.Unmarshal(body, &x)
