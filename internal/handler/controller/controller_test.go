@@ -90,10 +90,14 @@ func TestRegisterPublisher(t *testing.T) {
 				var a map[string]interface{} = b.(map[string]interface{})
 				var z string = a["id"].(string)
 				_, err = uuid.Parse(z)
-				if err != nil {
-					t.Log(err.Error())
-				}
 
+				if err != nil {
+					t.Error(err.Error())
+				}
+				_, ok = m[z]
+				if !ok {
+					t.Errorf("Want: %v, Got: %v", "publisher map", ok)
+				}
 			},
 		},
 		{
