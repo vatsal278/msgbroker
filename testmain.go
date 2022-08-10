@@ -1,14 +1,25 @@
 package main
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/json"
 	"io/ioutil"
 	"log"
 
 	"github.com/gin-gonic/gin"
+	RSA "github.com/vatsal278/msgbroker/pkg/Rsa"
 )
 
 func main() {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		log.Print()
+	}
+
+	publicKey := privateKey.PublicKey
+	pubKey := RSA.KeyAsPEMStr(&publicKey)
+	log.Printf("this is public key %v", pubKey)
 	r := gin.Default()
 	r.POST("/ping", func(c *gin.Context) {
 		body, err := ioutil.ReadAll(c.Request.Body)
@@ -16,16 +27,16 @@ func main() {
 			log.Print(err)
 			return
 		}
-		log.Print(1)
+
 		defer c.Request.Body.Close()
-		var x map[string]interface{}
+		var x string
 		err = json.Unmarshal(body, &x)
-		log.Print(2)
 		if err != nil {
 			log.Print(err)
 			return
 		}
-		log.Print(3)
+		y := RSA.RSA_OAEP_Decrypt(x, *privateKey)
+		log.Print(y)
 		log.Printf("%+v", x)
 	})
 	r.GET("/pong", func(c *gin.Context) {
