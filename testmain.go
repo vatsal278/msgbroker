@@ -19,7 +19,7 @@ func main() {
 
 	publicKey := privateKey.PublicKey
 	pubKey := RSA.KeyAsPEMStr(&publicKey)
-	log.Printf("this is public key %v", pubKey)
+	log.Printf("This is public key %v", pubKey)
 	r := gin.Default()
 	r.POST("/ping", func(c *gin.Context) {
 		body, err := ioutil.ReadAll(c.Request.Body)
