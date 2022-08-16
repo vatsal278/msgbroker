@@ -7,7 +7,7 @@ import (
 type CallBack struct {
 	HttpMethod  string `form:"httpMethod" json:"httpMethod" validate:"required"`
 	CallbackUrl string `form:"callbackUrl" json:"callbackUrl" validate:"required"`
-	PublicKey   string `form:"key" json:"key" validate:"required"`
+	PublicKey   string `form:"key" json:"key"`
 }
 
 type Subscriber struct {

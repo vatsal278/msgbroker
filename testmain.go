@@ -8,7 +8,7 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
-	RSA "github.com/vatsal278/msgbroker/pkg/Rsa"
+	RSA "github.com/vatsal278/msgbroker/pkg/crypt"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 
 	publicKey := privateKey.PublicKey
 	pubKey := RSA.KeyAsPEMStr(&publicKey)
-	log.Printf("This is public key %v", pubKey)
+	log.Printf("This is public key \n%v", pubKey)
 	r := gin.Default()
 	r.POST("/ping", func(c *gin.Context) {
 		body, err := ioutil.ReadAll(c.Request.Body)
@@ -27,17 +27,32 @@ func main() {
 			log.Print(err)
 			return
 		}
-
 		defer c.Request.Body.Close()
-		var x string
+		var x map[string]interface{}
 		err = json.Unmarshal(body, &x)
 		if err != nil {
 			log.Print(err)
 			return
 		}
-		y := RSA.RSA_OAEP_Decrypt(x, *privateKey)
-		log.Print(y)
 		log.Printf("%+v", x)
+	})
+	r.POST("/pingWoEncrypt", func(c *gin.Context) {
+		body, err := ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+
+		defer c.Request.Body.Close()
+
+		var y map[string]interface{}
+		err = json.Unmarshal(body, &y)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+
+		log.Printf("%+v", y)
 	})
 	r.GET("/pong", func(c *gin.Context) {
 		body, err := ioutil.ReadAll(c.Request.Body)
@@ -54,7 +69,7 @@ func main() {
 		}
 		log.Printf("%+v", x)
 	})
-	r.Run(":8082")
+	r.Run(":8086")
 }
 
 //b88847c0-a1ad-450e-a033-568e3a6cd4bc

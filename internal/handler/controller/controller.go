@@ -12,7 +12,7 @@ import (
 	controllerInterface "github.com/vatsal278/msgbroker/internal/handler"
 	"github.com/vatsal278/msgbroker/internal/model"
 	parser "github.com/vatsal278/msgbroker/internal/pkg/parser"
-	RSA "github.com/vatsal278/msgbroker/pkg/Rsa"
+	RSA "github.com/vatsal278/msgbroker/pkg/crypt"
 	"github.com/vatsal278/msgbroker/pkg/responseWriter"
 )
 
@@ -112,28 +112,48 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 			log.Println("No publisher found with the specified name for specified channel")
 			return
 		}
-		//PublicKey:="24049099257750543577110691145392378535433506714382016684543650515257577861982800257875667193131828538020295509676212580314884562301451353127727792254976742096165542847693603938683809531049339684700695684621360161384777600216173105205424925494517556647992162280299092209488690220952214623117409133793117229918719355861564257788861574556262434611828388560502280837107250951428122252993587372819460884050317262549673940088624322772988739161204172820022948311146833791624240432914774891660328641595103012681073823066179394147279398819054276953900486280012050787242661250538787611882539749025308645087482171961775641573583 65537"
 
 		for _, v := range m.messageBroker.SubM[updates.Publisher.Channel] {
 			go func(v model.Subscriber) {
-				PublicKey := v.CallBack.PublicKey
-				PubKey := RSA.PEMStrAsKey(PublicKey)
-				updates.Update = RSA.RSA_OAEP_Encrypt(updates.Update, *PubKey)
-				reqBody := []byte(updates.Update)
-				timeout := time.Duration(2 * time.Second)
 				client := http.Client{
-					Timeout: timeout,
+					Timeout: time.Duration(2 * time.Second),
 				}
 				method := v.CallBack.HttpMethod
 				url := v.CallBack.CallbackUrl
-				request, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
-				if err != nil {
-					log.Println(err.Error())
-					return
+				if v.CallBack.PublicKey != "" {
+
+					PublicKey := v.CallBack.PublicKey
+					log.Print(PublicKey)
+					PubKey, err := RSA.PEMStrAsKey(PublicKey)
+					if err != nil {
+						log.Print(err.Error())
+					}
+					a, err := RSA.RsaOaepEncrypt(updates.Update, *PubKey)
+					if err != nil {
+						log.Print(err.Error())
+					}
+
+					reqBody := []byte(a)
+					request, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
+					if err != nil {
+						log.Println(err.Error())
+						return
+					}
+					request.Header.Set("Content-Type", "application/json")
+					log.Printf("%+v \n", *request)
+					client.Do(request)
+				} else {
+					reqBody := []byte(updates.Update)
+					request, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
+					if err != nil {
+						log.Println(err.Error())
+						return
+					}
+					request.Header.Set("Content-Type", "application/json")
+					log.Printf("%+v \n", *request)
+					client.Do(request)
 				}
-				request.Header.Set("Content-Type", "application/json")
-				log.Printf("%+v \n", *request)
-				client.Do(request)
+
 			}(v)
 
 		}
