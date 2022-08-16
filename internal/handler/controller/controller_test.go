@@ -158,6 +158,7 @@ func TestRegisterSubscriber(t *testing.T) {
 	var callback = model.CallBack{
 		HttpMethod:  "GET",
 		CallbackUrl: "http://localhost:8083/pong",
+		PublicKey:   "LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0tLS0tCk1JSUJDZ0tDQVFFQXZBWmZxM1lvVzdUTzBGYmJHMWxxRVBxNHQ4bGc5cTdla0NYMXJIVjVNNTdobmdyNlF1L3MKTnp0QXkzTmh1TG4xSm5PSVN5bzRXc29MMDRKWFI5WXI5UXVtZW1EdGVreWpOd2toQkFWM0xBN3BORjV3c2ZaSwpFbC9jY2U5aGZxRWtOcERtNUFFZklnRW5UZXdTMml5cGRCQm1pVmI5VzNzZFdUWHEwenNKY1pqb29obXZPNkN1CngyY01NOW1EeFQ4VXBYM2gweE1WNTBVd050TzRVbS9aWnFPeENqdFdhNE1STE16NTNMTG9lUm9UOE1tZEdlV1UKYTdHMitKU0c5K3V1MVJIVkYrelZGaEx2emtoM3dLTGdVdU1DcW0rL1U0Y3B3TDUxZU9TYVZNYUhjU1NiRXZCUgp0d0lZdHRHR3NDVC9mTEdyVXdjZm8xZ0xKaVNjU2taN1B3SURBUUFCCi0tLS0tRU5EIFJTQSBQVUJMSUMgS0VZLS0tLS0K",
 	}
 
 	var subscriber = model.Subscriber{
@@ -286,10 +287,11 @@ func TestRegisterSubscriber(t *testing.T) {
 		})
 	}
 }
-func DummyRegister(url string, method string, t *testing.T, i controllerInterface.IController) {
+func DummyRegister(url string, method string, key string, t *testing.T, i controllerInterface.IController) {
 	var callback = model.CallBack{
 		HttpMethod:  method,
 		CallbackUrl: url,
+		PublicKey:   key,
 	}
 	var subscriber = model.Subscriber{
 		CallBack: callback,
@@ -315,9 +317,11 @@ func Testutility(c *TestServer) *mux.Router {
 		if err != nil {
 			c.t.Log(err.Error())
 		}
-		if !reflect.DeepEqual(string(x), "Hello World") {
-			c.t.Errorf("Want: %v, Got: %v", "Hello World", string(x))
-		}
+		c.t.Log(x)
+		/*cipher := "GSoAC/7xLjGSlxcNXe7FwEXnpmo5BfR4FfKGfxCuJqEIDR5F1C45b9xegF9v64LP2XXQsBcGFALjvvnXpRcXYyW8fwWqdA7gQGmSyZW1EP7txLValpBmxTprqtY54BZvnn+i4g/dx6jlP27a7h/YTpLERnCK96AV35w6SitNOudATZZVFQj8P0r1hEf6FziHJOy63s4MOkAtNsh5lw4yKlqUZbP3lEQ4ND/9mDCNf49PWzGC5JpqERb1ABMjW6UhyKSLWlRCn7GQlOMGQw5Mx93Kp5gRkXJXFJg+VfECE5sHufcp8aXK5qiI6py/+97HB/t2GZZr6g4afLz0zVJuXA=="
+		if !reflect.DeepEqual(string(x), cipher) {
+			c.t.Errorf("Want: %v, Got: %v", cipher, string(x))
+		}*/
 	}).Methods(http.MethodPost)
 	http.Handle("/", router)
 	fmt.Println("Connected to Test Server")
@@ -332,8 +336,9 @@ func testClient(c *TestServer) {
 	url := svr.URL + "/ping"
 	c.t.Log(url)
 	c.srv = svr
+	key := "LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0tLS0tCk1JSUJDZ0tDQVFFQXZBWmZxM1lvVzdUTzBGYmJHMWxxRVBxNHQ4bGc5cTdla0NYMXJIVjVNNTdobmdyNlF1L3MKTnp0QXkzTmh1TG4xSm5PSVN5bzRXc29MMDRKWFI5WXI5UXVtZW1EdGVreWpOd2toQkFWM0xBN3BORjV3c2ZaSwpFbC9jY2U5aGZxRWtOcERtNUFFZklnRW5UZXdTMml5cGRCQm1pVmI5VzNzZFdUWHEwenNKY1pqb29obXZPNkN1CngyY01NOW1EeFQ4VXBYM2gweE1WNTBVd050TzRVbS9aWnFPeENqdFdhNE1STE16NTNMTG9lUm9UOE1tZEdlV1UKYTdHMitKU0c5K3V1MVJIVkYrelZGaEx2emtoM3dLTGdVdU1DcW0rL1U0Y3B3TDUxZU9TYVZNYUhjU1NiRXZCUgp0d0lZdHRHR3NDVC9mTEdyVXdjZm8xZ0xKaVNjU2taN1B3SURBUUFCCi0tLS0tRU5EIFJTQSBQVUJMSUMgS0VZLS0tLS0K"
 	//defer svr.Close()
-	DummyRegister(url, "POST", c.t, c.i)
+	DummyRegister(url, "POST", key, c.t, c.i)
 
 }
 
@@ -359,7 +364,7 @@ func TestPublishMessage(t *testing.T) {
 		Channel string      `form:"channel" json:"channel" validate:"required"`
 	}
 	var publisher1 = model.Publisher{
-		Id:      "Publisher",
+		Id:      "publisher1",
 		Channel: "c4",
 	}
 
