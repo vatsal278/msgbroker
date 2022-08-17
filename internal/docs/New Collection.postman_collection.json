@@ -42,7 +42,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"callback\":{\r\n        \"httpMethod\" :\"GET\",\r\n\t\t\"callbackUrl\" : \"http://localhost:8082/pong\"\r\n    },\r\n    \"channel\": \"c3\"\r\n}",
+					"raw": "{\r\n    \"callback\":{\r\n        \"httpMethod\" :\"GET\",\r\n\t\t\"callbackUrl\" : \"http://localhost:8082/pong\"\r\n    },\r\n    \"channel\": \"c4\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -87,6 +87,35 @@
 					"port": "9090",
 					"path": [
 						"publish"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "register subscriber with encryption",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"callback\":{\r\n        \"httpMethod\" :\"POST\",\r\n\t\t\"callbackUrl\" : \"http://localhost:8086/ping\",\r\n        \"key\": \"LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0tLS0tCk1JSUJDZ0tDQVFFQXZBWmZxM1lvVzdUTzBGYmJHMWxxRVBxNHQ4bGc5cTdla0NYMXJIVjVNNTdobmdyNlF1L3MKTnp0QXkzTmh1TG4xSm5PSVN5bzRXc29MMDRKWFI5WXI5UXVtZW1EdGVreWpOd2toQkFWM0xBN3BORjV3c2ZaSwpFbC9jY2U5aGZxRWtOcERtNUFFZklnRW5UZXdTMml5cGRCQm1pVmI5VzNzZFdUWHEwenNKY1pqb29obXZPNkN1CngyY01NOW1EeFQ4VXBYM2gweE1WNTBVd050TzRVbS9aWnFPeENqdFdhNE1STE16NTNMTG9lUm9UOE1tZEdlV1UKYTdHMitKU0c5K3V1MVJIVkYrelZGaEx2emtoM3dLTGdVdU1DcW0rL1U0Y3B3TDUxZU9TYVZNYUhjU1NiRXZCUgp0d0lZdHRHR3NDVC9mTEdyVXdjZm8xZ0xKaVNjU2taN1B3SURBUUFCCi0tLS0tRU5EIFJTQSBQVUJMSUMgS0VZLS0tLS0K\"\r\n    },\r\n    \"channel\": \"c4\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:9090/register/subscriber",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9090",
+					"path": [
+						"register",
+						"subscriber"
 					]
 				}
 			},

@@ -120,40 +120,34 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 				}
 				method := v.CallBack.HttpMethod
 				url := v.CallBack.CallbackUrl
+				reqBody := []byte(updates.Update)
 				if v.CallBack.PublicKey != "" {
 
 					PublicKey := v.CallBack.PublicKey
+					log.Print("this from control")
 					log.Print(PublicKey)
 					PubKey, err := RSA.PEMStrAsKey(PublicKey)
+					log.Print(PubKey)
 					if err != nil {
 						log.Print(err.Error())
+						return
 					}
 					a, err := RSA.RsaOaepEncrypt(updates.Update, *PubKey)
 					if err != nil {
 						log.Print(err.Error())
+						return
 					}
 
-					reqBody := []byte(a)
-					request, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
-					if err != nil {
-						log.Println(err.Error())
-						return
-					}
-					request.Header.Set("Content-Type", "application/json")
-					log.Printf("%+v \n", *request)
-					client.Do(request)
-				} else {
-					reqBody := []byte(updates.Update)
-					request, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
-					if err != nil {
-						log.Println(err.Error())
-						return
-					}
-					request.Header.Set("Content-Type", "application/json")
-					log.Printf("%+v \n", *request)
-					client.Do(request)
+					reqBody = []byte(a)
 				}
-
+				request, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
+				if err != nil {
+					log.Println(err.Error())
+					return
+				}
+				request.Header.Set("Content-Type", "application/json")
+				log.Printf("%+v \n", *request)
+				client.Do(request)
 			}(v)
 
 		}

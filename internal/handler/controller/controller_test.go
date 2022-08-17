@@ -2,9 +2,13 @@ package controller
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
+	RSA "github.com/vatsal278/msgbroker/pkg/crypt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -160,7 +164,14 @@ func TestRegisterSubscriber(t *testing.T) {
 		CallbackUrl: "http://localhost:8083/pong",
 		PublicKey:   "LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0tLS0tCk1JSUJDZ0tDQVFFQXZBWmZxM1lvVzdUTzBGYmJHMWxxRVBxNHQ4bGc5cTdla0NYMXJIVjVNNTdobmdyNlF1L3MKTnp0QXkzTmh1TG4xSm5PSVN5bzRXc29MMDRKWFI5WXI5UXVtZW1EdGVreWpOd2toQkFWM0xBN3BORjV3c2ZaSwpFbC9jY2U5aGZxRWtOcERtNUFFZklnRW5UZXdTMml5cGRCQm1pVmI5VzNzZFdUWHEwenNKY1pqb29obXZPNkN1CngyY01NOW1EeFQ4VXBYM2gweE1WNTBVd050TzRVbS9aWnFPeENqdFdhNE1STE16NTNMTG9lUm9UOE1tZEdlV1UKYTdHMitKU0c5K3V1MVJIVkYrelZGaEx2emtoM3dLTGdVdU1DcW0rL1U0Y3B3TDUxZU9TYVZNYUhjU1NiRXZCUgp0d0lZdHRHR3NDVC9mTEdyVXdjZm8xZ0xKaVNjU2taN1B3SURBUUFCCi0tLS0tRU5EIFJTQSBQVUJMSUMgS0VZLS0tLS0K",
 	}
-
+	var callback1 = model.CallBack{
+		HttpMethod:  "GET",
+		CallbackUrl: "http://localhost:8083/pong",
+	}
+	var subscriber1 = model.Subscriber{
+		CallBack: callback1,
+		Channel:  "c4",
+	}
 	var subscriber = model.Subscriber{
 		CallBack: callback,
 		Channel:  "c4",
@@ -181,8 +192,55 @@ func TestRegisterSubscriber(t *testing.T) {
 		ValidateFunc     func(*httptest.ResponseRecorder, controllerInterface.IController, interface{})
 	}{
 		{
-			name:        "Success:: Register Subscriber",
+			name:        "Success:: Register Subscriber::With Encryption",
 			requestBody: subscriber,
+			ValidateFunc: func(w *httptest.ResponseRecorder, i controllerInterface.IController, reqbody interface{}) {
+				var x *models = i.(*models)
+				var y model.Subscriber = reqbody.(model.Subscriber)
+				t.Log(y)
+				//m := x.messageBroker.PubM[publisher.Channel]
+
+				for {
+					m := x.messageBroker.SubM[subscriber.Channel]
+					if len(m) == 1 {
+						break
+					}
+				}
+				m := x.messageBroker.SubM[subscriber.Channel]
+				if len(m) != 1 {
+					t.Errorf("Want: %v, Got: %v", "1", len(m))
+				}
+				contentType := w.Header().Get("Content-Type")
+				if contentType != "application/json" {
+					t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
+				}
+				expectedResponse := tempStruct{
+					Status:  http.StatusCreated,
+					Message: "Successfully Registered as Subscriber to the channel",
+					Data:    nil,
+				}
+
+				if w.Code != expectedResponse.Status {
+					t.Errorf("Want: %v, Got: %v", expectedResponse.Status, w.Code)
+				}
+				responseBody, error := ioutil.ReadAll(w.Body)
+				if error != nil {
+					t.Error(error.Error())
+				}
+				var response tempStruct
+				err := json.Unmarshal(responseBody, &response)
+				if err != nil {
+					t.Error(error.Error())
+				}
+				if !reflect.DeepEqual(response, expectedResponse) {
+					t.Errorf("Want: %v, Got: %v", expectedResponse, response)
+				}
+
+			},
+		},
+		{
+			name:        "Success:: Register Subscriber :: Without Encryption",
+			requestBody: subscriber1,
 			ValidateFunc: func(w *httptest.ResponseRecorder, i controllerInterface.IController, reqbody interface{}) {
 				var x *models = i.(*models)
 				var y model.Subscriber = reqbody.(model.Subscriber)
@@ -287,11 +345,15 @@ func TestRegisterSubscriber(t *testing.T) {
 		})
 	}
 }
-func DummyRegister(url string, method string, key string, t *testing.T, i controllerInterface.IController) {
+
+func DummyRegister(url string, method string, t *testing.T, i controllerInterface.IController, key *rsa.PrivateKey) {
+
+	publicKey := key.PublicKey
+	pubKey := RSA.KeyAsPEMStr(&publicKey)
 	var callback = model.CallBack{
 		HttpMethod:  method,
 		CallbackUrl: url,
-		PublicKey:   key,
+		PublicKey:   pubKey,
 	}
 	var subscriber = model.Subscriber{
 		CallBack: callback,
@@ -308,7 +370,7 @@ func DummyRegister(url string, method string, key string, t *testing.T, i contro
 	t.Log(m.messageBroker.SubM[subscriber.Channel])
 }
 
-func Testutility(c *TestServer) *mux.Router {
+func Testutility(c *TestServer, key *rsa.PrivateKey) *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		defer c.wg.Done()
@@ -318,10 +380,9 @@ func Testutility(c *TestServer) *mux.Router {
 			c.t.Log(err.Error())
 		}
 		c.t.Log(x)
-		/*cipher := "GSoAC/7xLjGSlxcNXe7FwEXnpmo5BfR4FfKGfxCuJqEIDR5F1C45b9xegF9v64LP2XXQsBcGFALjvvnXpRcXYyW8fwWqdA7gQGmSyZW1EP7txLValpBmxTprqtY54BZvnn+i4g/dx6jlP27a7h/YTpLERnCK96AV35w6SitNOudATZZVFQj8P0r1hEf6FziHJOy63s4MOkAtNsh5lw4yKlqUZbP3lEQ4ND/9mDCNf49PWzGC5JpqERb1ABMjW6UhyKSLWlRCn7GQlOMGQw5Mx93Kp5gRkXJXFJg+VfECE5sHufcp8aXK5qiI6py/+97HB/t2GZZr6g4afLz0zVJuXA=="
-		if !reflect.DeepEqual(string(x), cipher) {
-			c.t.Errorf("Want: %v, Got: %v", cipher, string(x))
-		}*/
+
+		res, err := RSA.RsaOaepDecrypt(string(x), *key)
+		c.t.Log(res)
 	}).Methods(http.MethodPost)
 	http.Handle("/", router)
 	fmt.Println("Connected to Test Server")
@@ -330,15 +391,16 @@ func Testutility(c *TestServer) *mux.Router {
 }
 func testClient(c *TestServer) {
 	//expected := "dummy data"
-
-	x := Testutility(c)
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		log.Print()
+	}
+	x := Testutility(c, privateKey)
 	svr := httptest.NewServer(x)
 	url := svr.URL + "/ping"
 	c.t.Log(url)
 	c.srv = svr
-	key := "LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0tLS0tCk1JSUJDZ0tDQVFFQXZBWmZxM1lvVzdUTzBGYmJHMWxxRVBxNHQ4bGc5cTdla0NYMXJIVjVNNTdobmdyNlF1L3MKTnp0QXkzTmh1TG4xSm5PSVN5bzRXc29MMDRKWFI5WXI5UXVtZW1EdGVreWpOd2toQkFWM0xBN3BORjV3c2ZaSwpFbC9jY2U5aGZxRWtOcERtNUFFZklnRW5UZXdTMml5cGRCQm1pVmI5VzNzZFdUWHEwenNKY1pqb29obXZPNkN1CngyY01NOW1EeFQ4VXBYM2gweE1WNTBVd050TzRVbS9aWnFPeENqdFdhNE1STE16NTNMTG9lUm9UOE1tZEdlV1UKYTdHMitKU0c5K3V1MVJIVkYrelZGaEx2emtoM3dLTGdVdU1DcW0rL1U0Y3B3TDUxZU9TYVZNYUhjU1NiRXZCUgp0d0lZdHRHR3NDVC9mTEdyVXdjZm8xZ0xKaVNjU2taN1B3SURBUUFCCi0tLS0tRU5EIFJTQSBQVUJMSUMgS0VZLS0tLS0K"
-	//defer svr.Close()
-	DummyRegister(url, "POST", key, c.t, c.i)
+	DummyRegister(url, "POST", c.t, c.i, privateKey)
 
 }
 
