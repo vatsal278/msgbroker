@@ -235,7 +235,7 @@ func Test_PEMStrAsKey(t *testing.T) {
 			},
 		},
 		{
-			name:        "Failure::PEMStrAsKey::",
+			name:        "Failure::PEMStrAsKey::failed to decode PEM block::Empty Public Key",
 			requestBody: "Hello World",
 			setupFunc: func() (string, rsa.PublicKey) {
 				privKey, _ := rsa.GenerateKey(rand.Reader, 2048)
@@ -253,7 +253,7 @@ func Test_PEMStrAsKey(t *testing.T) {
 			},
 		},
 		{
-			name:        "Failure::PEMStrAsKey::failed to decode PEM block",
+			name:        "Failure::PEMStrAsKey::failed to decode PEM block::Incorrect PEM type",
 			requestBody: "Hello World",
 			setupFunc: func() (string, rsa.PublicKey) {
 				privKey, _ := rsa.GenerateKey(rand.Reader, 2048)

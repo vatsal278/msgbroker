@@ -28,13 +28,9 @@ func main() {
 			return
 		}
 		defer c.Request.Body.Close()
-		var x map[string]interface{}
-		err = json.Unmarshal(body, &x)
-		if err != nil {
-			log.Print(err)
-			return
-		}
-		log.Printf("%+v", x)
+		res, err := RSA.RsaOaepDecrypt(string(body), *privateKey)
+
+		log.Printf("%+v", res)
 	})
 	r.POST("/pingWoEncrypt", func(c *gin.Context) {
 		body, err := ioutil.ReadAll(c.Request.Body)
