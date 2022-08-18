@@ -124,10 +124,7 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 				if v.CallBack.PublicKey != "" {
 
 					PublicKey := v.CallBack.PublicKey
-					log.Print("this from control")
-					log.Print(PublicKey)
 					PubKey, err := RSA.PEMStrAsKey(PublicKey)
-					log.Print(PubKey)
 					if err != nil {
 						log.Print(err.Error())
 						return
@@ -157,7 +154,6 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 }
 func (m *models) NoRouteFound() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		responseWriter.ResponseWriter(w, http.StatusNotFound, "no route found", nil, &model.Response{})
 		log.Print("No Route Found")
 	}
