@@ -14,11 +14,8 @@ import (
 
 func main() {
 	var privateKey *rsa.PrivateKey
-	body, err := ioutil.ReadFile("test.txt")
-	err1 := json.Unmarshal(body, privateKey)
-	if err != nil {
-		log.Print(err1.Error())
-	}
+	body, err := ioutil.ReadFile("privatekey.json")
+
 	if err != nil {
 
 		log.Printf("failed reading data from file: %s", err)
@@ -27,19 +24,30 @@ func main() {
 
 		if err != nil {
 			log.Printf("failed creating file: %s", err)
+			return
 		}
 		privateKey, err = rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
-			log.Print()
+			log.Print(err.Error())
+			return
 		}
 		x, err := json.Marshal(privateKey)
 		if err != nil {
 			log.Printf(err.Error())
+			return
 		}
 
 		err = ioutil.WriteFile("privatekey.json", x, 0644)
 		if err != nil {
-			log.Fatalf("failed writing to file: %s", err)
+			log.Printf("failed writing to file: %s", err)
+			return
+		}
+		log.Print("succesfully saved key to file")
+	} else {
+		err1 := json.Unmarshal(body, &privateKey)
+		if err1 != nil {
+			log.Print(err1.Error())
+			return
 		}
 	}
 
@@ -55,7 +63,12 @@ func main() {
 		}
 		defer c.Request.Body.Close()
 		res, err := RSA.RsaOaepDecrypt(string(body), *privateKey)
-
+		var y map[string]interface{}
+		err = json.Unmarshal([]byte(res), &y)
+		if err != nil {
+			log.Print(err)
+			return
+		}
 		log.Printf("%+v", res)
 	})
 	r.POST("/pingWoEncrypt", func(c *gin.Context) {
