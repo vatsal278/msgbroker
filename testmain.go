@@ -6,15 +6,41 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	RSA "github.com/vatsal278/msgbroker/pkg/crypt"
 )
 
 func main() {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	var privateKey *rsa.PrivateKey
+	body, err := ioutil.ReadFile("test.txt")
+	err1 := json.Unmarshal(body, privateKey)
 	if err != nil {
-		log.Print()
+		log.Print(err1.Error())
+	}
+	if err != nil {
+
+		log.Printf("failed reading data from file: %s", err)
+
+		_, err := os.Create("privatekey.json")
+
+		if err != nil {
+			log.Printf("failed creating file: %s", err)
+		}
+		privateKey, err = rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			log.Print()
+		}
+		x, err := json.Marshal(privateKey)
+		if err != nil {
+			log.Printf(err.Error())
+		}
+
+		err = ioutil.WriteFile("privatekey.json", x, 0644)
+		if err != nil {
+			log.Fatalf("failed writing to file: %s", err)
+		}
 	}
 
 	publicKey := privateKey.PublicKey
