@@ -18,10 +18,6 @@ type tempStruct struct {
 }
 
 func TestRegisterPublisher(t *testing.T) {
-	var publisher = model.Publisher{
-		Id:      "publisher1",
-		Channel: "c4",
-	}
 
 	tests := []struct {
 		name             string
@@ -30,8 +26,11 @@ func TestRegisterPublisher(t *testing.T) {
 		expectedResponse tempStruct
 	}{
 		{
-			name:        "Success:: Router Test",
-			requestBody: publisher,
+			name: "Success:: Router Test",
+			requestBody: model.Publisher{
+				Id:      "publisher1",
+				Channel: "c4",
+			},
 			expectedResponse: tempStruct{
 				Status:  http.StatusCreated,
 				Message: constants.PublisherRegistration,
