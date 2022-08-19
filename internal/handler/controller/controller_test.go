@@ -422,7 +422,7 @@ func Testutility(c *TestServer, key *rsa.PrivateKey) *mux.Router {
 		var y string
 		err = json.Unmarshal([]byte(res), &y)
 		if err != nil {
-			c.t.Log(err.Error())
+			c.t.Errorf(err.Error())
 			return
 		}
 		if !reflect.DeepEqual(y, "Hello World") {
@@ -441,7 +441,7 @@ func Testutility(c *TestServer, key *rsa.PrivateKey) *mux.Router {
 		var y string
 		err = json.Unmarshal(x, &y)
 		if err != nil {
-			c.t.Log(err.Error())
+			c.t.Errorf(err.Error())
 			return
 		}
 		if !reflect.DeepEqual(y, "Hello World") {
@@ -663,7 +663,7 @@ func TestPublishMessage(t *testing.T) {
 		{
 			name: "FAILURE::Publish Message::No Publisher Found",
 			requestBody: model.Updates{
-				Publisher: model.Publisher{Id: "publisher1", Channel: "c4"},
+				Publisher: model.Publisher{Id: "b2ae109d-1382-4b1c-a8ab-5a9d04555e4e", Channel: "c4"},
 				Update:    "Hello World",
 			},
 			setupFunc: func(i controllerInterface.IController) {
@@ -702,7 +702,7 @@ func TestPublishMessage(t *testing.T) {
 		},
 		{
 			name:        "FAILURE::Publish Message::Incorrect input details",
-			requestBody: TempUpdates{Publisher: TempPublisher{Id: 1, Channel: "c4"}, Update: 1},
+			requestBody: TempUpdates{Publisher: TempPublisher{Id: "", Channel: "c4"}, Update: 1},
 			setupFunc: func(i controllerInterface.IController) {
 				var x *models = i.(*models)
 				m, ok := x.messageBroker.PubM[publisher.Channel]
