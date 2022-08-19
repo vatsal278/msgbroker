@@ -50,10 +50,10 @@ func (m *models) RegisterPublisher() func(w http.ResponseWriter, r *http.Request
 		m.messageBroker.PubM[publisher.Channel] = x
 		log.Print(m.messageBroker.PubM)
 
-		responseWriter.ResponseWriter(w, http.StatusCreated, "Successfully Registered as publisher to the channel", map[string]interface{}{
+		responseWriter.ResponseWriter(w, http.StatusCreated, constants.PublisherRegistration, map[string]interface{}{
 			"id": publisher.Id,
 		}, &model.Response{})
-		log.Print("Successfully Registered as publisher to the channel")
+		log.Print(constants.PublisherRegistration)
 	}
 }
 
@@ -82,8 +82,8 @@ func (m *models) RegisterSubscriber() func(w http.ResponseWriter, r *http.Reques
 			m.messageBroker.SubM[s.Channel] = subs
 
 		}(subscriber)
-		responseWriter.ResponseWriter(w, http.StatusCreated, "Successfully Registered as Subscriber to the channel", nil, &model.Response{})
-		log.Print("Successfully Subscribed to the channel")
+		responseWriter.ResponseWriter(w, http.StatusCreated, constants.SubscriberRegistration, nil, &model.Response{})
+		log.Print(constants.SubscriberRegistration)
 	}
 }
 
@@ -100,7 +100,7 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 		_, err = uuid.Parse(updates.Publisher.Id)
 
 		if err != nil {
-			responseWriter.ResponseWriter(w, http.StatusBadRequest, "Invalid UUID", nil, &model.Response{})
+			responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.InvalidUUID, nil, &model.Response{})
 			log.Println(err.Error())
 			return
 		}
@@ -108,8 +108,8 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 		pubm := m.messageBroker.PubM[updates.Publisher.Channel]
 		_, ok := pubm[updates.Publisher.Id]
 		if !ok {
-			responseWriter.ResponseWriter(w, http.StatusNotFound, "No publisher found with the specified name for specified channel", nil, &model.Response{})
-			log.Println("No publisher found with the specified name for specified channel")
+			responseWriter.ResponseWriter(w, http.StatusNotFound, constants.PublisherNotFound, nil, &model.Response{})
+			log.Println(constants.PublisherNotFound)
 			return
 		}
 
@@ -148,13 +148,13 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 			}(v)
 
 		}
-		responseWriter.ResponseWriter(w, http.StatusOK, "notified all subscriber", nil, &model.Response{})
-		log.Println("notified all subscriber")
+		responseWriter.ResponseWriter(w, http.StatusOK, constants.NotifiedSub, nil, &model.Response{})
+		log.Println(constants.NotifiedSub)
 	}
 }
 func (m *models) NoRouteFound() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		responseWriter.ResponseWriter(w, http.StatusNotFound, "no route found", nil, &model.Response{})
-		log.Print("No Route Found")
+		responseWriter.ResponseWriter(w, http.StatusNotFound, constants.NoRoute, nil, &model.Response{})
+		log.Print(constants.NoRoute)
 	}
 }

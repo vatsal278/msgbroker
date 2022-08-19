@@ -3,6 +3,7 @@ package router
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/vatsal278/msgbroker/internal/constants"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -33,7 +34,7 @@ func TestRegisterPublisher(t *testing.T) {
 			requestBody: publisher,
 			expectedResponse: tempStruct{
 				Status:  http.StatusCreated,
-				Message: "Successfully Registered as publisher to the channel",
+				Message: constants.PublisherRegistration,
 				Data:    nil,
 			},
 		},

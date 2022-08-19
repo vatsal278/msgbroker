@@ -2,6 +2,7 @@ package parseRequest
 
 import (
 	"bytes"
+	"github.com/vatsal278/msgbroker/internal/constants"
 	"io"
 	"reflect"
 	"strings"
@@ -21,8 +22,8 @@ func TestParseAndValidateRequest(t *testing.T) {
 			name:        "FAILURE:: Parse failure::json unmarshall error",
 			requestBody: io.NopCloser(bytes.NewBuffer([]byte(`{"field_1": "23"}`))),
 			validation: func(err error, x testStruct) {
-				if !strings.Contains(err.Error(), "cannot unmarshal string into Go struct field") {
-					t.Errorf("Want: %v, Got: %v", "cannot unmarshal string into Go struct field", err.Error())
+				if !strings.Contains(err.Error(), constants.StringUnmarshalError) {
+					t.Errorf("Want: %v, Got: %v", constants.StringUnmarshalError, err.Error())
 				}
 				expectedResponse := testStruct{}
 				if !reflect.DeepEqual(x, expectedResponse) {
@@ -34,8 +35,8 @@ func TestParseAndValidateRequest(t *testing.T) {
 			name:        "FAILURE:: Parse success::validation failure",
 			requestBody: io.NopCloser(bytes.NewBuffer([]byte("{}"))),
 			validation: func(err error, x testStruct) {
-				if !strings.Contains(err.Error(), "failed on the 'required' tag") {
-					t.Errorf("Want: %v, Got: %v", "failed on the 'required' tag", err.Error())
+				if !strings.Contains(err.Error(), constants.ValidatorFail) {
+					t.Errorf("Want: %v, Got: %v", constants.ValidatorFail, err.Error())
 				}
 				expectedResponse := testStruct{}
 				if !reflect.DeepEqual(x, expectedResponse) {

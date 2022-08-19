@@ -69,7 +69,7 @@ func TestRegisterPublisher(t *testing.T) {
 				err := json.Unmarshal(responseBody, &response)
 				expectedResponse := model.Response{
 					Status:  http.StatusCreated,
-					Message: "Successfully Registered as publisher to the channel",
+					Message: constants.PublisherRegistration,
 					Data: map[string]interface{}{
 						"id": publisher.Id,
 					},
@@ -226,7 +226,7 @@ func TestRegisterSubscriber(t *testing.T) {
 				}
 				expectedResponse := model.Response{
 					Status:  http.StatusCreated,
-					Message: "Successfully Registered as Subscriber to the channel",
+					Message: constants.SubscriberRegistration,
 					Data:    nil,
 				}
 
@@ -282,7 +282,7 @@ func TestRegisterSubscriber(t *testing.T) {
 				}
 				expectedResponse := model.Response{
 					Status:  http.StatusCreated,
-					Message: "Successfully Registered as Subscriber to the channel",
+					Message: constants.SubscriberRegistration,
 					Data:    nil,
 				}
 
@@ -452,7 +452,7 @@ func Testutility(c *TestServer, key *rsa.PrivateKey) *mux.Router {
 
 	}).Methods(http.MethodPost)
 	http.Handle("/", router)
-	c.t.Log("Connected to Test Server")
+	c.t.Log(constants.ConnectedServer)
 
 	return router
 }
@@ -534,7 +534,7 @@ func TestPublishMessage(t *testing.T) {
 			validateFunc: func(w *httptest.ResponseRecorder) {
 				var tempstruct = model.Response{
 					Status:  http.StatusOK,
-					Message: "notified all subscriber",
+					Message: constants.NotifiedSub,
 					Data:    nil,
 				}
 				tStruct.wg.Wait()
@@ -561,7 +561,7 @@ func TestPublishMessage(t *testing.T) {
 			},
 			expectedResponse: model.Response{
 				Status:  http.StatusOK,
-				Message: "notified all subscriber",
+				Message: constants.NotifiedSub,
 				Data:    nil,
 			},
 		},
@@ -588,7 +588,7 @@ func TestPublishMessage(t *testing.T) {
 			validateFunc: func(w *httptest.ResponseRecorder) {
 				var tempstruct = model.Response{
 					Status:  http.StatusOK,
-					Message: "notified all subscriber",
+					Message: constants.NotifiedSub,
 					Data:    nil,
 				}
 				tStruct.wg.Wait()
@@ -616,7 +616,7 @@ func TestPublishMessage(t *testing.T) {
 			},
 			expectedResponse: model.Response{
 				Status:  http.StatusOK,
-				Message: "notified all subscriber",
+				Message: constants.NotifiedSub,
 				Data:    nil,
 			},
 		},
@@ -631,7 +631,7 @@ func TestPublishMessage(t *testing.T) {
 			validateFunc: func(w *httptest.ResponseRecorder) {
 				var tempstruct = model.Response{
 					Status:  http.StatusBadRequest,
-					Message: "Invalid UUID",
+					Message: constants.InvalidUUID,
 					Data:    nil,
 				}
 				contentType := w.Header().Get("Content-Type")
@@ -656,7 +656,7 @@ func TestPublishMessage(t *testing.T) {
 			},
 			expectedResponse: model.Response{
 				Status:  http.StatusNotFound,
-				Message: "No publisher found with the specified name for specified channel",
+				Message: constants.PublisherNotFound,
 				Data:    nil,
 			},
 		},
@@ -671,7 +671,7 @@ func TestPublishMessage(t *testing.T) {
 			validateFunc: func(w *httptest.ResponseRecorder) {
 				var tempstruct = model.Response{
 					Status:  http.StatusNotFound,
-					Message: "No publisher found with the specified name for specified channel",
+					Message: constants.PublisherNotFound,
 					Data:    nil,
 				}
 				contentType := w.Header().Get("Content-Type")
@@ -696,7 +696,7 @@ func TestPublishMessage(t *testing.T) {
 			},
 			expectedResponse: model.Response{
 				Status:  http.StatusNotFound,
-				Message: "No publisher found with the specified name for specified channel",
+				Message: constants.PublisherNotFound,
 				Data:    nil,
 			},
 		},
@@ -788,7 +788,7 @@ func TestNoRouteFound(t *testing.T) {
 				}
 				expectedResponse := Response{
 					Status:  http.StatusNotFound,
-					Message: "no route found",
+					Message: constants.NoRoute,
 					Data:    nil,
 				}
 				if w.Code != expectedResponse.Status {
