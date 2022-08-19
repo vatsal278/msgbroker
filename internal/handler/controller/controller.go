@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"github.com/vatsal278/msgbroker/internal/pkg/parser"
 	"log"
 	"net/http"
 	"reflect"
@@ -9,10 +10,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/vatsal278/msgbroker/internal/constants"
-	controllerInterface "github.com/vatsal278/msgbroker/internal/handler"
+	"github.com/vatsal278/msgbroker/internal/handler"
 	"github.com/vatsal278/msgbroker/internal/model"
-	parser "github.com/vatsal278/msgbroker/internal/pkg/parser"
-	RSA "github.com/vatsal278/msgbroker/pkg/crypt"
+	"github.com/vatsal278/msgbroker/pkg/crypt"
 	"github.com/vatsal278/msgbroker/pkg/responseWriter"
 )
 
@@ -32,7 +32,7 @@ func NewController() controllerInterface.IController {
 func (m *models) RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var publisher model.Publisher
-		err := parser.ParseAndValidateRequest(r.Body, &publisher)
+		err := parseRequest.ParseAndValidateRequest(r.Body, &publisher)
 		if err != nil {
 			responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.IncompleteData, nil, &model.Response{})
 			log.Println(err.Error())
@@ -60,7 +60,7 @@ func (m *models) RegisterPublisher() func(w http.ResponseWriter, r *http.Request
 func (m *models) RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var subscriber model.Subscriber
-		err := parser.ParseAndValidateRequest(r.Body, &subscriber)
+		err := parseRequest.ParseAndValidateRequest(r.Body, &subscriber)
 		if err != nil {
 			responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.IncompleteData, nil, &model.Response{})
 			log.Println(err.Error())
@@ -90,7 +90,7 @@ func (m *models) RegisterSubscriber() func(w http.ResponseWriter, r *http.Reques
 func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var updates model.Updates
-		err := parser.ParseAndValidateRequest(r.Body, &updates)
+		err := parseRequest.ParseAndValidateRequest(r.Body, &updates)
 
 		if err != nil {
 			responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.IncompleteData, nil, &model.Response{})
@@ -124,12 +124,12 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 				if v.CallBack.PublicKey != "" {
 
 					PublicKey := v.CallBack.PublicKey
-					PubKey, err := RSA.PEMStrAsKey(PublicKey)
+					PubKey, err := crypt.PEMStrAsKey(PublicKey)
 					if err != nil {
 						log.Print(err.Error())
 						return
 					}
-					a, err := RSA.RsaOaepEncrypt(updates.Update, *PubKey)
+					a, err := crypt.RsaOaepEncrypt(updates.Update, *PubKey)
 					if err != nil {
 						log.Print(err.Error())
 						return

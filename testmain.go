@@ -3,56 +3,58 @@ package main
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
+	"errors"
+	"github.com/gin-gonic/gin"
+	"github.com/vatsal278/msgbroker/pkg/crypt"
 	"io/ioutil"
 	"log"
-	"os"
-
-	"github.com/gin-gonic/gin"
-	RSA "github.com/vatsal278/msgbroker/pkg/crypt"
 )
 
 func main() {
 	var privateKey *rsa.PrivateKey
-	body, err := ioutil.ReadFile("privatekey.json")
+	body, err := ioutil.ReadFile("privatekey.pem")
 
 	if err != nil {
 
 		log.Printf("failed reading data from file: %s", err)
 
-		_, err := os.Create("privatekey.json")
-
-		if err != nil {
-			log.Printf("failed creating file: %s", err)
-			return
-		}
 		privateKey, err = rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
 			log.Print(err.Error())
 			return
 		}
-		x, err := json.Marshal(privateKey)
-		if err != nil {
-			log.Printf(err.Error())
-			return
-		}
+		KeyPem := string(pem.EncodeToMemory(
+			&pem.Block{
+				Type:  "RSA PRIVATE KEY",
+				Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+			},
+		))
 
-		err = ioutil.WriteFile("privatekey.json", x, 0644)
+		err = ioutil.WriteFile("privatekey.pem", []byte(KeyPem), 0644)
 		if err != nil {
 			log.Printf("failed writing to file: %s", err)
 			return
 		}
-		log.Print("succesfully saved key to file")
+		log.Print("succesfully saved PEM Key to file")
 	} else {
-		err1 := json.Unmarshal(body, &privateKey)
-		if err1 != nil {
-			log.Print(err1.Error())
+		spkiBlock, _ := pem.Decode(body)
+		if spkiBlock == nil || spkiBlock.Type != "RSA PRIVATE KEY" {
+			err := errors.New("failed to decode PEM block containing public key")
+			log.Print(err.Error())
 			return
 		}
-	}
+		privateKey, err = x509.ParsePKCS1PrivateKey(spkiBlock.Bytes)
+		if err != nil {
+			log.Print(err.Error())
+			return
+		}
 
+	}
 	publicKey := privateKey.PublicKey
-	pubKey := RSA.KeyAsPEMStr(&publicKey)
+	pubKey := crypt.KeyAsPEMStr(&publicKey)
 	log.Printf("This is public key \n%v", pubKey)
 	r := gin.Default()
 	r.POST("/ping", func(c *gin.Context) {
@@ -62,7 +64,7 @@ func main() {
 			return
 		}
 		defer c.Request.Body.Close()
-		res, err := RSA.RsaOaepDecrypt(string(body), *privateKey)
+		res, err := crypt.RsaOaepDecrypt(string(body), *privateKey)
 		var y map[string]interface{}
 		err = json.Unmarshal([]byte(res), &y)
 		if err != nil {
