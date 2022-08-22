@@ -45,7 +45,7 @@ func TestRegisterPublisher(t *testing.T) {
 				if !ok {
 					t.Errorf("Want: %v, Got: %v", "publisher map", ok)
 				}
-				if m == nil {
+				if len(m) == 0 {
 					t.Errorf("Want: %v, Got: %v", "publisher map", m)
 				}
 
@@ -102,7 +102,7 @@ func TestRegisterPublisher(t *testing.T) {
 				var y tempPublisher = reqbody.(tempPublisher)
 				t.Log(y)
 				m := x.messageBroker.PubM["c4"]
-				if m != nil {
+				if len(m) != 0 {
 					t.Errorf("Want: %v, Got: %v", nil, m)
 				}
 				contentType := w.Header().Get("Content-Type")
@@ -148,28 +148,6 @@ func TestRegisterPublisher(t *testing.T) {
 }
 
 func TestRegisterSubscriber(t *testing.T) {
-
-	/*var callback = model.CallBack{
-		HttpMethod:  "GET",
-		CallbackUrl: "http://localhost:8083/pong",
-		PublicKey:   "LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0tLS0tCk1JSUJDZ0tDQVFFQXZBWmZxM1lvVzdUTzBGYmJHMWxxRVBxNHQ4bGc5cTdla0NYMXJIVjVNNTdobmdyNlF1L3MKTnp0QXkzTmh1TG4xSm5PSVN5bzRXc29MMDRKWFI5WXI5UXVtZW1EdGVreWpOd2toQkFWM0xBN3BORjV3c2ZaSwpFbC9jY2U5aGZxRWtOcERtNUFFZklnRW5UZXdTMml5cGRCQm1pVmI5VzNzZFdUWHEwenNKY1pqb29obXZPNkN1CngyY01NOW1EeFQ4VXBYM2gweE1WNTBVd050TzRVbS9aWnFPeENqdFdhNE1STE16NTNMTG9lUm9UOE1tZEdlV1UKYTdHMitKU0c5K3V1MVJIVkYrelZGaEx2emtoM3dLTGdVdU1DcW0rL1U0Y3B3TDUxZU9TYVZNYUhjU1NiRXZCUgp0d0lZdHRHR3NDVC9mTEdyVXdjZm8xZ0xKaVNjU2taN1B3SURBUUFCCi0tLS0tRU5EIFJTQSBQVUJMSUMgS0VZLS0tLS0K",
-	}
-
-	var subscriber1 = model.Subscriber{
-		CallBack: model.CallBack{
-			HttpMethod:  "GET",
-			CallbackUrl: "http://localhost:8083/pong",
-		},
-		Channel: "c4",
-	}
-	var subscriber = model.Subscriber{
-		CallBack: model.CallBack{
-			HttpMethod:  "GET",
-			CallbackUrl: "http://localhost:8083/pong",
-			PublicKey:   "LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0tLS0tCk1JSUJDZ0tDQVFFQXZBWmZxM1lvVzdUTzBGYmJHMWxxRVBxNHQ4bGc5cTdla0NYMXJIVjVNNTdobmdyNlF1L3MKTnp0QXkzTmh1TG4xSm5PSVN5bzRXc29MMDRKWFI5WXI5UXVtZW1EdGVreWpOd2toQkFWM0xBN3BORjV3c2ZaSwpFbC9jY2U5aGZxRWtOcERtNUFFZklnRW5UZXdTMml5cGRCQm1pVmI5VzNzZFdUWHEwenNKY1pqb29obXZPNkN1CngyY01NOW1EeFQ4VXBYM2gweE1WNTBVd050TzRVbS9aWnFPeENqdFdhNE1STE16NTNMTG9lUm9UOE1tZEdlV1UKYTdHMitKU0c5K3V1MVJIVkYrelZGaEx2emtoM3dLTGdVdU1DcW0rL1U0Y3B3TDUxZU9TYVZNYUhjU1NiRXZCUgp0d0lZdHRHR3NDVC9mTEdyVXdjZm8xZ0xKaVNjU2taN1B3SURBUUFCCi0tLS0tRU5EIFJTQSBQVUJMSUMgS0VZLS0tLS0K",
-		},
-		Channel: "c4",
-	}*/
 
 	type TempSubscriber struct {
 		CallBack model.CallBack
@@ -364,38 +342,6 @@ func TestRegisterSubscriber(t *testing.T) {
 	}
 }
 
-func DummyRegister(url string, method string, t *testing.T, i controllerInterface.IController, key *rsa.PrivateKey) {
-
-}
-
-func Testutility(c *TestServer, key *rsa.PrivateKey) *mux.Router {
-	router := mux.NewRouter()
-	router.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		defer c.wg.Done()
-		defer c.t.Log("HIT")
-		x, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			c.t.Log(err.Error())
-			return
-		}
-		res := string(x)
-
-		if key != nil {
-			res, err = crypt.RsaOaepDecrypt(string(x), *key)
-
-		}
-
-		if !reflect.DeepEqual(res, "Hello World") {
-			c.t.Errorf("Want: %v, Got: %v", "Hello World", res)
-			return
-		}
-		c.t.Log(res)
-	}).Methods(http.MethodPost)
-	http.Handle("/", router)
-	c.t.Log(constants.ConnectedServer)
-
-	return router
-}
 func testClient(c *TestServer, encrypted bool) {
 	//expected := "dummy data"
 	var privateKey *rsa.PrivateKey
@@ -441,14 +387,13 @@ func testClient(c *TestServer, encrypted bool) {
 		c.t.Log(pubKey)
 	}
 
-	var callback = model.CallBack{
-		HttpMethod:  "POST",
-		CallbackUrl: url,
-		PublicKey:   pubKey,
-	}
 	var subscriber = model.Subscriber{
-		CallBack: callback,
-		Channel:  "c4",
+		CallBack: model.CallBack{
+			HttpMethod:  "POST",
+			CallbackUrl: url,
+			PublicKey:   pubKey,
+		},
+		Channel: "c4",
 	}
 	var m *models = c.i.(*models)
 	subs := m.messageBroker.SubM[subscriber.Channel]
@@ -680,16 +625,8 @@ func TestPublishMessage(t *testing.T) {
 		},
 		{
 			name:        "FAILURE::Publish Message::Incorrect input details",
-			requestBody: TempUpdates{Publisher: TempPublisher{Id: "", Channel: "c4"}, Update: 1},
+			requestBody: TempUpdates{Publisher: TempPublisher{Id: "", Channel: ""}, Update: 1},
 			setupFunc: func(i controllerInterface.IController, reqbody interface{}) {
-				var x *models = i.(*models)
-				var y TempUpdates = reqbody.(TempUpdates)
-				m, ok := x.messageBroker.PubM[y.Publisher.Channel]
-				if !ok {
-					m = make(map[string]struct{})
-					m[""] = struct{}{}
-				}
-				x.messageBroker.PubM[y.Publisher.Channel] = m
 			},
 			validateFunc: func(w *httptest.ResponseRecorder) {
 				var tempstruct = model.Response{
@@ -746,15 +683,11 @@ func TestPublishMessage(t *testing.T) {
 }
 
 func TestNoRouteFound(t *testing.T) {
-	type Response struct {
-		Status  int    `json:"status"`
-		Message string `json:"message"`
-		Data    interface{}
-	}
+
 	tests := []struct {
 		name             string
 		requestBody      interface{}
-		expectedResponse Response
+		expectedResponse model.Response
 		validateFunc     func(*httptest.ResponseRecorder, *http.Request)
 	}{
 		{
@@ -765,7 +698,7 @@ func TestNoRouteFound(t *testing.T) {
 				if contentType != "application/json" {
 					t.Errorf("Want: Content Type as %v, Got: Content Type as %v", "application/json", contentType)
 				}
-				expectedResponse := Response{
+				expectedResponse := model.Response{
 					Status:  http.StatusNotFound,
 					Message: constants.NoRoute,
 					Data:    nil,
@@ -777,7 +710,7 @@ func TestNoRouteFound(t *testing.T) {
 				if error != nil {
 					t.Error(error.Error())
 				}
-				var response Response
+				var response model.Response
 				err := json.Unmarshal(responseBody, &response)
 				if err != nil {
 					t.Error(error.Error())
