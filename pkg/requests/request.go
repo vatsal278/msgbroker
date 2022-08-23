@@ -7,8 +7,24 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 )
 
+type msgBrokerUrl struct {
+	msgbrokerUrl string
+}
+
+func NewController(url string) ApiCalls {
+	return &msgBrokerUrl{
+		msgbrokerUrl: url,
+	}
+}
+
+type ApiCalls interface {
+	RegisterSub(string, string, string, string) error
+	RegisterPub(string) (string, error)
+	UpdateSubs(string, string, string) error
+}
 type CallBack struct {
 	HttpMethod  string `form:"httpMethod" json:"httpMethod" validate:"required"`
 	CallbackUrl string `form:"callbackUrl" json:"callbackUrl" validate:"required"`
@@ -31,38 +47,79 @@ type Updates struct {
 	Update    string    `form:"update" json:"update" validate:"required"`
 }
 
-func RegisterSub(v Subscriber) error {
-	x, err := json.Marshal(v)
+func (m *msgBrokerUrl) RegisterSub(method string, callbackUrl string, publicKey string, channel string) error {
+	sub := Subscriber{CallBack: CallBack{HttpMethod: method, CallbackUrl: callbackUrl, PublicKey: publicKey},
+		Channel: channel,
+	}
+	reqBody, err := json.Marshal(sub)
+	if err != nil {
+		log.Print(err.Error())
+		return err
+	}
+	client := http.Client{
+		Timeout: time.Duration(2 * time.Second),
+	}
+	r, err := client.Post(m.msgbrokerUrl+"/register/subscriber", "application/json", bytes.NewBuffer(reqBody))
+	log.Println(r.Status)
+	if err != nil {
+		log.Print(err.Error())
+		return err
+	}
 
-	reqBody := []byte(x)
-	_, err = http.Post("http://localhost:9090/register/subscriber", "application/json", bytes.NewBuffer(reqBody))
-
-	return err
+	return nil
 }
 
-func RegisterPub(url string, v Publisher) (string, error) {
+func (m *msgBrokerUrl) RegisterPub(channel string) (string, error) {
 	var response model.Response
-	x, err := json.Marshal(v)
-	reqBody := []byte(x)
-	r, err := http.Post(url, "application/json", bytes.NewBuffer(reqBody))
-	log.Print(r.Body)
+	pub := Publisher{Channel: channel}
+	reqBody, err := json.Marshal(pub)
+	client := http.Client{
+		Timeout: time.Duration(2 * time.Second),
+	}
+	//request, err := http.NewRequest("POST","http://localhost:9090/register/subscriber",bytes.NewBuffer(reqBody))
+	r, err := client.Post(m.msgbrokerUrl+"/register/publisher", "application/json", bytes.NewBuffer(reqBody))
+	if err != nil {
+		log.Print(err.Error())
+		return "", err
+	}
+
 	body, err := ioutil.ReadAll(r.Body)
-	json.Unmarshal(body, &response)
+	if err != nil {
+		log.Print(err.Error())
+		return "", err
+	}
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		log.Print(err.Error())
+		return "", err
+	}
 	data := response.Data.(map[string]interface{})
 	id := data["id"]
-	return id.(string), err
+	return id.(string), nil
+
 }
 
-func UpdateSubs(url string, msg string, key string, channel string) error {
-	var update model.Updates
-	update.Update = msg
-	update.Publisher.Id = key
-	update.Publisher.Channel = channel
-	//var response model.Response
-	x, err := json.Marshal(update)
-	reqBody := []byte(x)
-	r, err := http.Post(url, "application/json", bytes.NewBuffer(reqBody))
-	log.Print(r.Body)
-
-	return err
+func (m *msgBrokerUrl) UpdateSubs(msg string, key string, channel string) error {
+	var update = Updates{
+		Update: msg,
+		Publisher: Publisher{
+			Id:      key,
+			Channel: channel,
+		},
+	}
+	reqBody, err := json.Marshal(update)
+	if err != nil {
+		log.Print(err.Error())
+		return err
+	}
+	client := http.Client{
+		Timeout: time.Duration(2 * time.Second),
+	}
+	r, err := client.Post(m.msgbrokerUrl+"/publish", "application/json", bytes.NewBuffer(reqBody))
+	if err != nil {
+		log.Print(err.Error())
+		return err
+	}
+	log.Print(r.Header)
+	return nil
 }
