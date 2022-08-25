@@ -353,6 +353,7 @@ func testClient(c *TestServer, encrypted bool) {
 		if err != nil {
 			c.t.Log(err.Error())
 		}
+
 	}
 	router := mux.NewRouter()
 	router.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {

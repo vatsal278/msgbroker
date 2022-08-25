@@ -2,8 +2,11 @@ package requests
 
 import (
 	"bytes"
+	"crypto/rsa"
 	"encoding/json"
 	"github.com/vatsal278/msgbroker/internal/model"
+	"github.com/vatsal278/msgbroker/pkg/crypt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -14,16 +17,26 @@ type msgBrokerUrl struct {
 	msgbrokerUrl string
 }
 
-func NewController(url string) ApiCalls {
+func NewController(url string) MsgBrokerCalls {
 	return &msgBrokerUrl{
 		msgbrokerUrl: url,
 	}
 }
 
-type ApiCalls interface {
-	RegisterSub(string, string, string, string) error
-	RegisterPub(string) (string, error)
-	UpdateSubs(string, string, string) error
+type MsgBrokerCalls interface {
+	UpdateMsgCalls
+	RegisterCalls
+	ReceiveMsgCalls
+}
+type UpdateMsgCalls interface {
+	UpdateSubs(string, string, string) (*http.Response, error)
+}
+type RegisterCalls interface {
+	RegisterSub(string, string, string, string) (*http.Response, error)
+	RegisterPub(string) (string, *http.Response, error)
+}
+type ReceiveMsgCalls interface {
+	ReceiveMsg(closer io.ReadCloser, key *rsa.PrivateKey) func() (string, error)
 }
 type CallBack struct {
 	HttpMethod  string `form:"httpMethod" json:"httpMethod" validate:"required"`
@@ -47,29 +60,38 @@ type Updates struct {
 	Update    string    `form:"update" json:"update" validate:"required"`
 }
 
-func (m *msgBrokerUrl) RegisterSub(method string, callbackUrl string, publicKey string, channel string) error {
+func (m *msgBrokerUrl) RegisterSub(method string, callbackUrl string, publicKey string, channel string) (*http.Response, error) {
 	sub := Subscriber{CallBack: CallBack{HttpMethod: method, CallbackUrl: callbackUrl, PublicKey: publicKey},
 		Channel: channel,
 	}
 	reqBody, err := json.Marshal(sub)
 	if err != nil {
 		log.Print(err.Error())
-		return err
+		return nil, err
 	}
 	client := http.Client{
-		Timeout: time.Duration(2 * time.Second),
+		Timeout: time.Duration(5 * time.Second),
 	}
-	r, err := client.Post(m.msgbrokerUrl+"/register/subscriber", "application/json", bytes.NewBuffer(reqBody))
-	log.Println(r.Status)
+	request, err := http.NewRequest("POST", m.msgbrokerUrl+"/register/subscriber", bytes.NewBuffer(reqBody))
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	log.Printf("%+v \n", *request)
+	r, err := client.Do(request)
+	//_, err = client.Post(m.msgbrokerUrl+"/register/subscriber", "application/json", bytes.NewBuffer(reqBody))
+	//log.Println(r.Status)
 	if err != nil {
 		log.Print(err.Error())
-		return err
+		return nil, err
 	}
+	log.Print(r.Status)
 
-	return nil
+	return r, nil
 }
 
-func (m *msgBrokerUrl) RegisterPub(channel string) (string, error) {
+func (m *msgBrokerUrl) RegisterPub(channel string) (string, *http.Response, error) {
 	var response model.Response
 	pub := Publisher{Channel: channel}
 	reqBody, err := json.Marshal(pub)
@@ -80,26 +102,26 @@ func (m *msgBrokerUrl) RegisterPub(channel string) (string, error) {
 	r, err := client.Post(m.msgbrokerUrl+"/register/publisher", "application/json", bytes.NewBuffer(reqBody))
 	if err != nil {
 		log.Print(err.Error())
-		return "", err
+		return "", nil, err
 	}
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Print(err.Error())
-		return "", err
+		return "", r, err
 	}
 	err = json.Unmarshal(body, &response)
 	if err != nil {
 		log.Print(err.Error())
-		return "", err
+		return "", r, err
 	}
 	data := response.Data.(map[string]interface{})
 	id := data["id"]
-	return id.(string), nil
+	return id.(string), r, nil
 
 }
 
-func (m *msgBrokerUrl) UpdateSubs(msg string, key string, channel string) error {
+func (m *msgBrokerUrl) UpdateSubs(msg string, key string, channel string) (*http.Response, error) {
 	var update = Updates{
 		Update: msg,
 		Publisher: Publisher{
@@ -110,7 +132,7 @@ func (m *msgBrokerUrl) UpdateSubs(msg string, key string, channel string) error 
 	reqBody, err := json.Marshal(update)
 	if err != nil {
 		log.Print(err.Error())
-		return err
+		return nil, err
 	}
 	client := http.Client{
 		Timeout: time.Duration(2 * time.Second),
@@ -118,8 +140,25 @@ func (m *msgBrokerUrl) UpdateSubs(msg string, key string, channel string) error 
 	r, err := client.Post(m.msgbrokerUrl+"/publish", "application/json", bytes.NewBuffer(reqBody))
 	if err != nil {
 		log.Print(err.Error())
-		return err
+		return nil, err
 	}
 	log.Print(r.Header)
-	return nil
+	return r, nil
+}
+func (m *msgBrokerUrl) ReceiveMsg(closer io.ReadCloser, key *rsa.PrivateKey) func() (string, error) {
+	return func() (string, error) {
+		body, err := ioutil.ReadAll(closer)
+		if err != nil {
+			log.Print(err)
+			return "", err
+		}
+		defer closer.Close()
+		res, err := crypt.RsaOaepDecrypt(string(body), *key)
+		if err != nil {
+			log.Print(err)
+			return "", err
+		}
+		log.Printf("%+v", res)
+		return res, nil
+	}
 }
