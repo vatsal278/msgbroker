@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"github.com/vatsal278/msgbroker/internal/pkg/parser"
+	"github.com/vatsal278/msgbroker/model"
 	"log"
 	"net/http"
 	"reflect"
@@ -11,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/vatsal278/msgbroker/internal/constants"
 	"github.com/vatsal278/msgbroker/internal/handler"
-	"github.com/vatsal278/msgbroker/internal/model"
 	"github.com/vatsal278/msgbroker/pkg/crypt"
 	"github.com/vatsal278/msgbroker/pkg/responseWriter"
 )

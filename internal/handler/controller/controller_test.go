@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
+	"github.com/vatsal278/msgbroker/model"
 	"github.com/vatsal278/msgbroker/pkg/crypt"
 	"io/ioutil"
 	"net/http"
@@ -17,7 +18,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/vatsal278/msgbroker/internal/constants"
 	"github.com/vatsal278/msgbroker/internal/handler"
-	"github.com/vatsal278/msgbroker/internal/model"
 )
 
 func TestRegisterPublisher(t *testing.T) {

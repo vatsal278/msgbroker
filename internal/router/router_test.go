@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/vatsal278/msgbroker/internal/constants"
+	"github.com/vatsal278/msgbroker/model"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/vatsal278/msgbroker/internal/model"
 )
 
 type tempStruct struct {
