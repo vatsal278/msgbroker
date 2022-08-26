@@ -4,11 +4,13 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"github.com/gorilla/mux"
+	"github.com/vatsal278/msgbroker/internal/constants"
 	parseRequest "github.com/vatsal278/msgbroker/internal/pkg/parser"
 	"github.com/vatsal278/msgbroker/model"
 	"github.com/vatsal278/msgbroker/pkg/crypt"
 	"github.com/vatsal278/msgbroker/pkg/responseWriter"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -68,32 +70,38 @@ func Test_RegiterSub(t *testing.T) {
 	}
 
 }
-func testServer(url string, f func(w http.ResponseWriter, r *http.Request)) {
+func testServer(url string, f func(w http.ResponseWriter, r *http.Request)) (*mux.Router, string) {
 	router := mux.NewRouter()
 	router.HandleFunc(url, f).Methods(http.MethodPost)
 	svr := httptest.NewServer(router)
-	url = svr.URL + "/ping"
+	//url = svr.URL + url
+
+	return router, svr.URL
 
 }
 func Test_RegiterPub(t *testing.T) {
-	calls := NewController("http://localhost:9090")
+	//sGrp := &sync.WaitGroup{}
 	tests := []struct {
 		name              string
-		requestBody       string
+		requestBody       map[string]string
 		mockServerHandler func(w http.ResponseWriter, r *http.Request)
 		ValidateFunc      func(err error)
 		expectedResponse  model.Response
 	}{
 		{
 			name:        "Success:: Register Publisher",
-			requestBody: "c1",
+			requestBody: map[string]string{"channel": "c1"},
 			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
+
+				//defer sGrp.Done()
+				log.Print("HIT")
 				var publisher model.Publisher
-				err := parseRequest.ParseAndValidateRequest(r.Body, publisher)
+				err := parseRequest.ParseAndValidateRequest(r.Body, &publisher)
 				if err != nil {
 					t.Errorf(err.Error())
+					return
 				}
-				err = responseWriter.ResponseWriter(w, 200, "", map[string]interface{}{
+				responseWriter.ResponseWriter(w, 200, "", map[string]interface{}{
 					"id": "publisher.Id",
 				}, &model.Response{})
 			},
@@ -105,10 +113,15 @@ func Test_RegiterPub(t *testing.T) {
 		},
 		{
 			name:        "Failure:: Register Publisher",
-			requestBody: "",
+			requestBody: map[string]string{"channel": ""},
+			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
+				log.Print("HIT")
+
+				responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.IncompleteData, nil, &model.Response{})
+			},
 			ValidateFunc: func(err error) {
 				if err == nil {
-					t.Errorf("Want: %v, Got: %v", "non success status code received : 400", nil)
+					t.Errorf("Want: %v, Got: %v", "Key: 'Publisher.Channel' Error:Field validation for 'Channel' failed on the 'required' tag", nil)
 				}
 			},
 		},
@@ -116,9 +129,15 @@ func Test_RegiterPub(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			testServer("http://localhost:9090", tt.mockServerHandler)
-			calls.RegisterPub(tt.requestBody)
-			//tt.ValidateFunc(err)
+			//sGrp.Add(1)
+			_, url := testServer("/register/publisher", tt.mockServerHandler)
+			//defer log.Fatal(router)
+			calls := NewController(url)
+			reqBody := tt.requestBody
+			key, err := calls.RegisterPub(reqBody["channel"])
+			t.Log(err)
+			t.Log(key)
+			tt.ValidateFunc(err)
 			//t.Log(key)
 
 		})
@@ -132,22 +151,28 @@ func Test_UpdateSubs(t *testing.T) {
 		channel string
 	}
 	tests := []struct {
-		name             string
-		requestBody      tempStruct
-		setupFunc        func() string
-		ValidateFunc     func(error)
-		expectedResponse model.Response
+		name              string
+		requestBody       tempStruct
+		mockServerHandler func(w http.ResponseWriter, r *http.Request)
+		ValidateFunc      func(error)
+		expectedResponse  model.Response
 	}{
 		{
 			name:        "Success:: Update Subscribers",
 			requestBody: tempStruct{msg: "Hello World", channel: "c1"},
-			setupFunc: func() string {
-				y := "c1"
-				z, err := calls.RegisterPub(y)
+			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
+
+				//defer sGrp.Done()
+				log.Print("HIT")
+				var publisher model.Publisher
+				err := parseRequest.ParseAndValidateRequest(r.Body, &publisher)
 				if err != nil {
-					t.Log(err.Error())
+					t.Errorf(err.Error())
+					return
 				}
-				return z
+				responseWriter.ResponseWriter(w, 200, "", map[string]interface{}{
+					"id": "publisher.Id",
+				}, &model.Response{})
 			},
 			ValidateFunc: func(err error) {
 				if err != nil {
@@ -157,10 +182,7 @@ func Test_UpdateSubs(t *testing.T) {
 		},
 		{
 			name:        "Failure:: Update Subscribers",
-			requestBody: tempStruct{msg: "", channel: ""},
-			setupFunc: func() string {
-				return ""
-			},
+			mockServerHandler: func(w http.ResponseWriter, r *http.Request)
 			ValidateFunc: func(err error) {
 				if err == nil {
 					t.Errorf("Want: %v, Got: %v", "error", nil)
@@ -170,9 +192,12 @@ func Test_UpdateSubs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			z := tt.setupFunc()
-			err := calls.PushMsg(tt.requestBody.msg, z, tt.requestBody.channel)
-			t.Log(err)
+			_, url := testServer("/register/publisher", tt.mockServerHandler)
+			//defer log.Fatal(router)
+			calls := NewController(url)
+			reqBody := tt.requestBody
+			key, err := calls.PushMsg()
+
 			tt.ValidateFunc(err)
 		})
 	}
