@@ -17,59 +17,6 @@ import (
 	"testing"
 )
 
-func Test_RegiterSub(t *testing.T) {
-	type tempStruct struct {
-		method      string
-		callbackUrl string
-		publicKey   string
-		channel     string
-	}
-	calls := NewController("http://localhost:9090")
-	tests := []struct {
-		name             string
-		requestBody      tempStruct
-		ValidateFunc     func(err error)
-		expectedResponse model.Response
-	}{
-		{
-			name:        "Success:: Register Subscriber",
-			requestBody: tempStruct{method: "GET", callbackUrl: "http://localhost:8083/pong", publicKey: "", channel: "c1"},
-			ValidateFunc: func(err error) {
-				if err != nil {
-					t.Errorf("Want: %v, Got: %v", nil, err.Error())
-				}
-			},
-		},
-		{
-			name:        "Success :: Register Subscriber :: With Encryption",
-			requestBody: tempStruct{method: "GET", callbackUrl: "http://localhost:8083/pong", publicKey: "LS0tLS1CRUdJTiBSU0EgUFVCTElDIEtFWS0tLS0tCk1JSUJDZ0tDQVFFQXZBWmZxM1lvVzdUTzBGYmJHMWxxRVBxNHQ4bGc5cTdla0NYMXJIVjVNNTdobmdyNlF1L3MKTnp0QXkzTmh1TG4xSm5PSVN5bzRXc29MMDRKWFI5WXI5UXVtZW1EdGVreWpOd2toQkFWM0xBN3BORjV3c2ZaSwpFbC9jY2U5aGZxRWtOcERtNUFFZklnRW5UZXdTMml5cGRCQm1pVmI5VzNzZFdUWHEwenNKY1pqb29obXZPNkN1CngyY01NOW1EeFQ4VXBYM2gweE1WNTBVd050TzRVbS9aWnFPeENqdFdhNE1STE16NTNMTG9lUm9UOE1tZEdlV1UKYTdHMitKU0c5K3V1MVJIVkYrelZGaEx2emtoM3dLTGdVdU1DcW0rL1U0Y3B3TDUxZU9TYVZNYUhjU1NiRXZCUgp0d0lZdHRHR3NDVC9mTEdyVXdjZm8xZ0xKaVNjU2taN1B3SURBUUFCCi0tLS0tRU5EIFJTQSBQVUJMSUMgS0VZLS0tLS0K", channel: "c1"},
-			ValidateFunc: func(err error) {
-				if err != nil {
-					t.Errorf("Want: %v, Got: %v", nil, err.Error())
-				}
-			},
-		},
-		{
-			name:        "Failure:: Register Subscriber :: Incorrect Method",
-			requestBody: tempStruct{method: "POST", callbackUrl: "http://localhost:8083/pong", publicKey: ""},
-			ValidateFunc: func(err error) {
-				if err != nil {
-					t.Errorf("Want: %v, Got: %v", "400 Bad Request", nil)
-					return
-				}
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			err := calls.RegisterSub(tt.requestBody.method, tt.requestBody.callbackUrl, tt.requestBody.publicKey, tt.requestBody.channel)
-			tt.ValidateFunc(err)
-		})
-	}
-
-}
 func testServer(url string, f func(w http.ResponseWriter, r *http.Request)) (*mux.Router, string) {
 	router := mux.NewRouter()
 	router.HandleFunc(url, f).Methods(http.MethodPost)
@@ -79,6 +26,73 @@ func testServer(url string, f func(w http.ResponseWriter, r *http.Request)) (*mu
 	return router, svr.URL
 
 }
+func Test_RegiterSub(t *testing.T) {
+	type tempStruct struct {
+		method      string
+		callbackUrl string
+		publicKey   string
+		channel     string
+	}
+
+	tests := []struct {
+		name              string
+		requestBody       tempStruct
+		mockServerHandler func(http.ResponseWriter, *http.Request)
+		ValidateFunc      func(err error)
+		expectedResponse  model.Response
+	}{
+		{
+			name:        "Success:: Register Subscriber",
+			requestBody: tempStruct{method: "GET", callbackUrl: "http://localhost:8083/pong", publicKey: "", channel: "c1"},
+			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
+
+				//defer sGrp.Done()
+				log.Print("HIT")
+				var subscriber model.Subscriber
+				err := parseRequest.ParseAndValidateRequest(r.Body, &subscriber)
+				if err != nil {
+					t.Errorf(err.Error())
+					return
+				}
+				responseWriter.ResponseWriter(w, 200, "", "", &model.Response{})
+			},
+			ValidateFunc: func(err error) {
+				if err != nil {
+					t.Errorf("Want: %v, Got: %v", nil, err.Error())
+				}
+			},
+		},
+		{
+			name:        "Failure:: Register Subscriber :: Incorrect Method",
+			requestBody: tempStruct{method: "", callbackUrl: "http://localhost:8083/pong", publicKey: ""},
+			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
+
+				responseWriter.ResponseWriter(w, 400, "", "", &model.Response{})
+			},
+			ValidateFunc: func(err error) {
+				if err == nil {
+					t.Errorf("Want: %v, Got: %v", "Key: 'Publisher.Channel' Error:Field validation for 'Channel' failed on the 'required' tag", nil)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			//sGrp.Add(1)
+			_, url := testServer("/register/subscriber", tt.mockServerHandler)
+			//defer log.Fatal(router)
+			calls := NewController(url)
+			//reqBody := tt.requestBody
+			//err := calls.RegisterPub("channel")
+			err := calls.RegisterSub(tt.requestBody.method, tt.requestBody.callbackUrl, tt.requestBody.publicKey, tt.requestBody.channel)
+			t.Log(err)
+			tt.ValidateFunc(err)
+		})
+	}
+
+}
+
 func Test_RegiterPub(t *testing.T) {
 	//sGrp := &sync.WaitGroup{}
 	tests := []struct {
@@ -133,8 +147,8 @@ func Test_RegiterPub(t *testing.T) {
 			_, url := testServer("/register/publisher", tt.mockServerHandler)
 			//defer log.Fatal(router)
 			calls := NewController(url)
-			reqBody := tt.requestBody
-			key, err := calls.RegisterPub(reqBody["channel"])
+			//reqBody := tt.requestBody
+			key, err := calls.RegisterPub("channel")
 			t.Log(err)
 			t.Log(key)
 			tt.ValidateFunc(err)
@@ -144,7 +158,6 @@ func Test_RegiterPub(t *testing.T) {
 	}
 }
 func Test_UpdateSubs(t *testing.T) {
-	calls := NewController("http://localhost:9090")
 	type tempStruct struct {
 		msg     string
 		key     string
@@ -158,21 +171,19 @@ func Test_UpdateSubs(t *testing.T) {
 		expectedResponse  model.Response
 	}{
 		{
-			name:        "Success:: Update Subscribers",
+			name:        "Success:: PushMsg",
 			requestBody: tempStruct{msg: "Hello World", channel: "c1"},
 			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
 
 				//defer sGrp.Done()
 				log.Print("HIT")
-				var publisher model.Publisher
-				err := parseRequest.ParseAndValidateRequest(r.Body, &publisher)
+				var update model.Updates
+				err := parseRequest.ParseAndValidateRequest(r.Body, &update)
 				if err != nil {
 					t.Errorf(err.Error())
 					return
 				}
-				responseWriter.ResponseWriter(w, 200, "", map[string]interface{}{
-					"id": "publisher.Id",
-				}, &model.Response{})
+				responseWriter.ResponseWriter(w, 200, "", nil, &model.Response{})
 			},
 			ValidateFunc: func(err error) {
 				if err != nil {
@@ -181,22 +192,30 @@ func Test_UpdateSubs(t *testing.T) {
 			},
 		},
 		{
-			name:        "Failure:: Update Subscribers",
-			mockServerHandler: func(w http.ResponseWriter, r *http.Request)
+			name:        "Failure::PushMsg",
+			requestBody: tempStruct{msg: "Hello World", channel: ""},
+			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
+
+				//defer sGrp.Done()
+				log.Print("HIT")
+
+				responseWriter.ResponseWriter(w, 400, "", nil, &model.Response{})
+			},
 			ValidateFunc: func(err error) {
 				if err == nil {
-					t.Errorf("Want: %v, Got: %v", "error", nil)
+					t.Errorf("Want: %v, Got: %v", "non success status code received : 400", nil)
 				}
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, url := testServer("/register/publisher", tt.mockServerHandler)
+			_, url := testServer("/publish", tt.mockServerHandler)
 			//defer log.Fatal(router)
 			calls := NewController(url)
 			reqBody := tt.requestBody
-			key, err := calls.PushMsg()
+			err := calls.PushMsg(reqBody.msg, "", reqBody.channel)
+			t.Log(err)
 
 			tt.ValidateFunc(err)
 		})
@@ -245,18 +264,18 @@ type TestServer struct {
 }*/
 
 func Test_ReceiveMessage(t *testing.T) {
-	calls := NewController("http://localhost:9090")
 	type tempStruct struct {
 		msg     string
 		key     string
 		channel string
 	}
 	tests := []struct {
-		name             string
-		requestBody      io.ReadCloser
-		setupFunc        func() (string, *rsa.PrivateKey)
-		ValidateFunc     func(string, error)
-		expectedResponse model.Response
+		name              string
+		requestBody       io.ReadCloser
+		setupFunc         func() (string, *rsa.PrivateKey)
+		mockServerHandler func(http.ResponseWriter, *http.Request)
+		ValidateFunc      func(error)
+		expectedResponse  model.Response
 	}{
 		{
 			name:        "Success:: Update Subscribers",
@@ -275,10 +294,21 @@ func Test_ReceiveMessage(t *testing.T) {
 				}
 				return cipherMsg, privateKey
 			},
-			ValidateFunc: func(msg string, err error) {
-				if msg != "Hello, world!" {
-					t.Errorf("Want: %v, Got: %v", "Hello, world!", msg)
+			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
+
+				//defer sGrp.Done()
+				log.Print("HIT")
+				var update model.Updates
+				err := parseRequest.ParseAndValidateRequest(r.Body, &update)
+				if err != nil {
+					t.Errorf(err.Error())
 					return
+				}
+				responseWriter.ResponseWriter(w, 200, "", nil, &model.Response{})
+			},
+			ValidateFunc: func(err error) {
+				if err != nil {
+					t.Errorf("Want: %v, Got: %v", nil, err.Error())
 				}
 			},
 		},
@@ -300,24 +330,34 @@ func Test_ReceiveMessage(t *testing.T) {
 				privateKey.E = 100
 				return cipherMsg, privateKey
 			},
-			ValidateFunc: func(msg string, err error) {
-				if msg != "" {
-					t.Errorf("Want: %v, Got: %v", "Hello, world!", msg)
+			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
+
+				//defer sGrp.Done()
+				log.Print("HIT")
+				var update model.Updates
+				err := parseRequest.ParseAndValidateRequest(r.Body, &update)
+				if err != nil {
+					t.Errorf(err.Error())
 					return
 				}
-				//testErr:=errors.New("crypto/rsa: decryption error")
-				if err.Error() != "crypto/rsa: decryption error" {
-					t.Errorf("Want: %v, Got: %v", "crypto/rsa: decryption error", msg)
-					return
+				responseWriter.ResponseWriter(w, 200, "", nil, &model.Response{})
+			},
+			ValidateFunc: func(err error) {
+				if err != nil {
+					t.Errorf("Want: %v, Got: %v", nil, err.Error())
 				}
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			x, key := tt.setupFunc()
-			readClosure := io.NopCloser(strings.NewReader(x))
-			getMsg := calls.ExtractMsg(key)
+			_, url := testServer("/publish", tt.mockServerHandler)
+			//defer log.Fatal(router)
+			calls := NewController(url)
+			reqBody := tt.requestBody
+			err := calls.ExtractMsg(key)
+			t.Log(err)
+			getMsg := c
 			tt.ValidateFunc(getMsg(readClosure))
 		})
 	}

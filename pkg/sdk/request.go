@@ -9,7 +9,6 @@ import (
 	"github.com/vatsal278/msgbroker/pkg/crypt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"time"
 )
@@ -24,25 +23,24 @@ func NewController(url string) MsgBrokerSvcI {
 	}
 }
 
-//MGbrokersvc will have 2 contracts one is for pub and second is for subs,
-//under pub contract we can directly have method for registration and have another contract pushsvc for pushing
-//msg under which we have another method pushmsg.
-//For Subscriber we can directly have method for registration and a contract ReceiverSvc for extraction the msg under which
-//we will have Extractmsg method
 type MsgBrokerSvcI interface {
-	UpdateMsgCalls
-	RegisterCalls
-	ReceiveMsgCalls
+	SubscriberSvc
+	PublisherSvc
 }
-type UpdateMsgCalls interface {
+type ExtractMsgSvc interface {
+	ExtractMsg(key *rsa.PrivateKey) func(io.ReadCloser) (string, error)
+}
+type SubscriberSvc interface {
+	RegisterSub(string, string, string, string) error
+	ExtractMsgSvc
+}
+
+type PushSvc interface {
 	PushMsg(string, string, string) error
 }
-type RegisterCalls interface {
-	RegisterSub(string, string, string, string) error
+type PublisherSvc interface {
 	RegisterPub(string) (string, error)
-}
-type ReceiveMsgCalls interface {
-	ExtractMsg(key *rsa.PrivateKey) func(io.ReadCloser) (string, error)
+	PushSvc
 }
 
 func (m *msgBrokerSvc) RegisterSub(method string, callbackUrl string, publicKey string, channel string) error {
@@ -51,7 +49,6 @@ func (m *msgBrokerSvc) RegisterSub(method string, callbackUrl string, publicKey 
 	}
 	reqBody, err := json.Marshal(sub)
 	if err != nil {
-
 		return err
 	}
 	client := http.Client{
@@ -59,11 +56,9 @@ func (m *msgBrokerSvc) RegisterSub(method string, callbackUrl string, publicKey 
 	}
 	request, err := http.NewRequest("POST", m.msgbrokerUrl+"/register/subscriber", bytes.NewBuffer(reqBody))
 	if err != nil {
-
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	log.Printf("%+v \n", *request)
 	r, err := client.Do(request)
 	if r.StatusCode < 200 || r.StatusCode > 299 {
 		return fmt.Errorf("non success status code received : %v", r.StatusCode)
@@ -71,11 +66,8 @@ func (m *msgBrokerSvc) RegisterSub(method string, callbackUrl string, publicKey 
 	//_, err = client.Post(m.msgbrokerUrl+"/register/subscriber", "application/json", bytes.NewBuffer(reqBody))
 	//log.Println(r.Status)
 	if err != nil {
-
 		return err
 	}
-	log.Print(r.Status)
-
 	return nil
 }
 
@@ -99,12 +91,10 @@ func (m *msgBrokerSvc) RegisterPub(channel string) (string, error) {
 	}
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-
 		return "", err
 	}
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-
 		return "", err
 	}
 	data, ok := response.Data.(map[string]interface{})
@@ -140,7 +130,6 @@ func (m *msgBrokerSvc) PushMsg(msg string, uuid string, channel string) error {
 		return fmt.Errorf("non success status code received : %v", r.StatusCode)
 	}
 	if err != nil {
-
 		return err
 	}
 	return nil
