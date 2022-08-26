@@ -4,8 +4,10 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"github.com/gorilla/mux"
+	parseRequest "github.com/vatsal278/msgbroker/internal/pkg/parser"
 	"github.com/vatsal278/msgbroker/model"
 	"github.com/vatsal278/msgbroker/pkg/crypt"
+	"github.com/vatsal278/msgbroker/pkg/responseWriter"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -66,24 +68,35 @@ func Test_RegiterSub(t *testing.T) {
 	}
 
 }
-func test(t *testing.T) {
+func testServer(url string, f func(w http.ResponseWriter, r *http.Request)) {
 	router := mux.NewRouter()
-	router.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc(url, f).Methods(http.MethodPost)
+	svr := httptest.NewServer(router)
+	url = svr.URL + "/ping"
 
-	}).Methods(http.MethodPost)
 }
 func Test_RegiterPub(t *testing.T) {
-	httptest.NewServer()
 	calls := NewController("http://localhost:9090")
 	tests := []struct {
-		name             string
-		requestBody      string
-		ValidateFunc     func(err error)
-		expectedResponse model.Response
+		name              string
+		requestBody       string
+		mockServerHandler func(w http.ResponseWriter, r *http.Request)
+		ValidateFunc      func(err error)
+		expectedResponse  model.Response
 	}{
 		{
 			name:        "Success:: Register Publisher",
 			requestBody: "c1",
+			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
+				var publisher model.Publisher
+				err := parseRequest.ParseAndValidateRequest(r.Body, publisher)
+				if err != nil {
+					t.Errorf(err.Error())
+				}
+				err = responseWriter.ResponseWriter(w, 200, "", map[string]interface{}{
+					"id": "publisher.Id",
+				}, &model.Response{})
+			},
 			ValidateFunc: func(err error) {
 				if err != nil {
 					t.Errorf("Want: %v, Got: %v", nil, err.Error())
@@ -102,11 +115,11 @@ func Test_RegiterPub(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var reqBody string
-			reqBody = tt.requestBody
-			key, err := calls.RegisterPub(reqBody)
-			tt.ValidateFunc(err)
-			t.Log(key)
+
+			testServer("http://localhost:9090", tt.mockServerHandler)
+			calls.RegisterPub(tt.requestBody)
+			//tt.ValidateFunc(err)
+			//t.Log(key)
 
 		})
 	}
