@@ -9,6 +9,7 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/vatsal278/msgbroker/pkg/crypt"
+	"github.com/vatsal278/msgbroker/pkg/sdk"
 	"io/ioutil"
 	"log"
 )
@@ -56,58 +57,62 @@ func main() {
 	publicKey := privateKey.PublicKey
 	pubKey := crypt.KeyAsPEMStr(&publicKey)
 	log.Printf("This is public key \n%v", pubKey)
+	calls := sdk.NewController("http://localhost:9090")
+	err = calls.RegisterSub("POST", "http://localhost:9090/ping", pubKey, "c1")
+	if err != nil {
+		log.Print(err.Error())
+		return
+	}
+	log.Printf("Successfully Registered subscriber")
+	err = calls.RegisterSub("GET", "http://localhost:9090/pong", "", "c1")
+	if err != nil {
+		log.Print(err.Error())
+		return
+	}
+	log.Printf("Successfully Registered subscriber")
+
 	r := gin.Default()
 	r.POST("/ping", func(c *gin.Context) {
-		body, err := ioutil.ReadAll(c.Request.Body)
+
+		extractMsg := calls.ExtractMsg(privateKey)
+		s, err := extractMsg(c.Request.Body)
 		if err != nil {
-			log.Print(err)
+			log.Print(err.Error())
 			return
 		}
-		defer c.Request.Body.Close()
-		res, err := crypt.RsaOaepDecrypt(string(body), *privateKey)
 		var y map[string]interface{}
-		err = json.Unmarshal([]byte(res), &y)
+		err = json.Unmarshal([]byte(s), &y)
 		if err != nil {
 			log.Print(err)
 			return
 		}
-		log.Printf("%+v", res)
-	})
-	r.POST("/pingWoEncrypt", func(c *gin.Context) {
-		body, err := ioutil.ReadAll(c.Request.Body)
-		if err != nil {
-			log.Print(err)
+		if y["data"] != "hello world" {
+			log.Printf("want: %v, got: %v", "hello world", y["data"])
 			return
 		}
-
-		defer c.Request.Body.Close()
-
-		var y map[string]interface{}
-		err = json.Unmarshal(body, &y)
-		if err != nil {
-			log.Print(err)
-			return
-		}
-
-		log.Printf("%+v", y)
+		log.Printf("Successfully Extracted Data: %v", y["data"])
 	})
 	r.GET("/pong", func(c *gin.Context) {
-		body, err := ioutil.ReadAll(c.Request.Body)
+		extractMsg := calls.ExtractMsg(nil)
+		s, err := extractMsg(c.Request.Body)
+		if err != nil {
+			log.Print(err.Error())
+			return
+		}
+		var y map[string]interface{}
+		err = json.Unmarshal([]byte(s), &y)
 		if err != nil {
 			log.Print(err)
 			return
 		}
-		defer c.Request.Body.Close()
-		var x map[string]interface{}
-		err = json.Unmarshal(body, &x)
-		if err != nil {
-			log.Print(err)
+		if y["data"] != "hello world" {
+			log.Printf("want: %v, got: %v", "hello world", y["data"])
 			return
 		}
-		log.Printf("%+v", x)
+		log.Printf("Successfully Extracted Data: %v", y["data"])
 	})
 	r.Run(":8086")
 }
 
 //b88847c0-a1ad-450e-a033-568e3a6cd4bc
-//686f45e8-746b-4daf-bce3-c4635d90c0db
+//
