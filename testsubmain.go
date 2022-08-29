@@ -58,17 +58,17 @@ func main() {
 	pubKey := crypt.KeyAsPEMStr(&publicKey)
 	log.Printf("This is public key \n%v", pubKey)
 	calls := sdk.NewController("http://localhost:9090")
-	err = calls.RegisterSub("POST", "http://localhost:9090/ping", pubKey, "c1")
+	err = calls.RegisterSub("POST", "http://localhost:9090/ping", pubKey, "c11")
 	if err != nil {
 		log.Print(err.Error())
 		return
 	}
-	log.Printf("Successfully Registered subscriber")
-	err = calls.RegisterSub("GET", "http://localhost:9090/pong", "", "c1")
-	if err != nil {
-		log.Print(err.Error())
-		return
-	}
+	//log.Printf("Successfully Registered subscriber")
+	//err = calls.RegisterSub("GET", "http://localhost:9090/pong", "", "c1")
+	//if err != nil {
+	//	log.Print(err.Error())
+	//	return
+	//}
 	log.Printf("Successfully Registered subscriber")
 
 	r := gin.Default()
