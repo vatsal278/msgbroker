@@ -54,19 +54,12 @@ func (m *msgBrokerSvc) RegisterSub(method string, callbackUrl string, publicKey 
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
-	request, err := http.NewRequest("POST", m.msgbrokerUrl+"/register/subscriber", bytes.NewBuffer(reqBody))
+	r, err := client.Post(m.msgbrokerUrl+"/register/subscriber", "application/json", bytes.NewBuffer(reqBody))
 	if err != nil {
 		return err
 	}
-	request.Header.Set("Content-Type", "application/json")
-	r, err := client.Do(request)
 	if r.StatusCode < 200 || r.StatusCode > 299 {
 		return fmt.Errorf("non success status code received : %v", r.StatusCode)
-	}
-	//_, err = client.Post(m.msgbrokerUrl+"/register/subscriber", "application/json", bytes.NewBuffer(reqBody))
-	//log.Println(r.Status)
-	if err != nil {
-		return err
 	}
 	return nil
 }
@@ -81,7 +74,6 @@ func (m *msgBrokerSvc) RegisterPub(channel string) (string, error) {
 	client := http.Client{
 		Timeout: 2 * time.Second,
 	}
-	//request, err := http.NewRequest("POST","http://localhost:9090/register/subscriber",bytes.NewBuffer(reqBody))
 	r, err := client.Post(m.msgbrokerUrl+"/register/publisher", "application/json", bytes.NewBuffer(reqBody))
 	if err != nil {
 		return "", err
@@ -105,9 +97,7 @@ func (m *msgBrokerSvc) RegisterPub(channel string) (string, error) {
 	if !ok || len(id) == 0 {
 		return "", fmt.Errorf("id not found")
 	}
-
 	return id, nil
-
 }
 
 func (m *msgBrokerSvc) PushMsg(msg string, uuid string, channel string) error {
@@ -126,17 +116,20 @@ func (m *msgBrokerSvc) PushMsg(msg string, uuid string, channel string) error {
 		Timeout: 2 * time.Second,
 	}
 	r, err := client.Post(m.msgbrokerUrl+"/publish", "application/json", bytes.NewBuffer(reqBody))
-	if r.StatusCode < 200 || r.StatusCode > 299 {
-		return fmt.Errorf("non success status code received : %v", r.StatusCode)
-	}
 	if err != nil {
 		return err
 	}
+	if r.StatusCode < 200 || r.StatusCode > 299 {
+		return fmt.Errorf("non success status code received : %v", r.StatusCode)
+	}
 	return nil
 }
+
 func (m *msgBrokerSvc) ExtractMsg(key *rsa.PrivateKey) func(closer io.ReadCloser) (string, error) {
 	return func(source io.ReadCloser) (string, error) {
-		//check if source is not nill
+		if source == nil {
+			return "", fmt.Errorf("source cannot be nil")
+		}
 		body, err := ioutil.ReadAll(source)
 		if err != nil {
 			return "", err

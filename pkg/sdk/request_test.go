@@ -1,364 +1,648 @@
 package sdk
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/vatsal278/msgbroker/internal/constants"
-	parseRequest "github.com/vatsal278/msgbroker/internal/pkg/parser"
 	"github.com/vatsal278/msgbroker/model"
 	"github.com/vatsal278/msgbroker/pkg/crypt"
 	"github.com/vatsal278/msgbroker/pkg/responseWriter"
 	"io"
-	"log"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"strings"
+	"reflect"
 	"testing"
 )
 
-func testServer(url string, f func(w http.ResponseWriter, r *http.Request)) (*mux.Router, string) {
+func testServer(url string, f func(w http.ResponseWriter, r *http.Request)) *httptest.Server {
 	router := mux.NewRouter()
 	router.HandleFunc(url, f).Methods(http.MethodPost)
 	svr := httptest.NewServer(router)
-	//url = svr.URL + url
-
-	return router, svr.URL
-
+	return svr
 }
-func Test_RegiterSub(t *testing.T) {
-	type tempStruct struct {
-		method      string
-		callbackUrl string
-		publicKey   string
-		channel     string
-	}
 
+func Test_RegisterPub(t *testing.T) {
 	tests := []struct {
 		name              string
-		requestBody       tempStruct
-		mockServerHandler func(http.ResponseWriter, *http.Request)
-		ValidateFunc      func(err error)
+		channel           string
+		setupFunc         func() *httptest.Server
+		mockServerHandler func(w http.ResponseWriter, r *http.Request)
+		ValidateFunc      func(uuid string, err error)
+		cleanupFunc       func(*httptest.Server)
 		expectedResponse  model.Response
 	}{
 		{
-			name:        "Success:: Register Subscriber",
-			requestBody: tempStruct{method: "GET", callbackUrl: "http://localhost:8083/pong", publicKey: "", channel: "c1"},
-			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
-
-				//defer sGrp.Done()
-				log.Print("HIT")
-				var subscriber model.Subscriber
-				err := parseRequest.ParseAndValidateRequest(r.Body, &subscriber)
-				if err != nil {
-					t.Errorf(err.Error())
-					return
-				}
-				responseWriter.ResponseWriter(w, 200, "", "", &model.Response{})
+			name: "Success:: Register Publisher",
+			setupFunc: func() *httptest.Server {
+				svr := testServer("/register/publisher", func(w http.ResponseWriter, r *http.Request) {
+					var publisher model.Publisher
+					body, err := ioutil.ReadAll(r.Body)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					err = json.Unmarshal(body, &publisher)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					if publisher.Channel != "channel1" {
+						t.Errorf("Want %v, Got %v", "channel1", publisher.Channel)
+					}
+					responseWriter.ResponseWriter(w, http.StatusCreated, "", map[string]interface{}{
+						"id": "b2ae109d-1382-4b1c-a8ab-5a9d04555e4e",
+					}, &model.Response{})
+				})
+				return svr
 			},
-			ValidateFunc: func(err error) {
+			channel: "channel1",
+			ValidateFunc: func(uuid string, err error) {
 				if err != nil {
 					t.Errorf("Want: %v, Got: %v", nil, err.Error())
 				}
+				if uuid != "b2ae109d-1382-4b1c-a8ab-5a9d04555e4e" {
+					t.Errorf("Want: %v, Got: %v", "b2ae109d-1382-4b1c-a8ab-5a9d04555e4e", uuid)
+				}
+			},
+			cleanupFunc: func(svr *httptest.Server) {
+				svr.Close()
 			},
 		},
 		{
-			name:        "Failure:: Register Subscriber :: Incorrect Method",
-			requestBody: tempStruct{method: "", callbackUrl: "http://localhost:8083/pong", publicKey: ""},
-			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
-
-				responseWriter.ResponseWriter(w, 400, "", "", &model.Response{})
+			name: "Failure:: Register Publisher::Id not found",
+			setupFunc: func() *httptest.Server {
+				svr := testServer("/register/publisher", func(w http.ResponseWriter, r *http.Request) {
+					var publisher model.Publisher
+					body, err := ioutil.ReadAll(r.Body)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					err = json.Unmarshal(body, &publisher)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					if publisher.Channel != "channel1" {
+						t.Errorf("Want %v, Got %v", "channel1", publisher.Channel)
+					}
+					responseWriter.ResponseWriter(w, http.StatusCreated, "", map[string]interface{}{
+						"key": "b2ae109d-1382-4b1c-a8ab-5a9d04555e4e",
+					}, &model.Response{})
+				})
+				return svr
 			},
-			ValidateFunc: func(err error) {
-				if err == nil {
-					t.Errorf("Want: %v, Got: %v", "Key: 'Publisher.Channel' Error:Field validation for 'Channel' failed on the 'required' tag", nil)
+			channel: "channel1",
+			ValidateFunc: func(uuid string, err error) {
+				expectedErr := fmt.Errorf("id not found")
+				if err.Error() != expectedErr.Error() {
+					t.Errorf("Want: %v, Got: %v", expectedErr.Error(), err.Error())
 				}
+				if uuid != "" {
+					t.Errorf("Want: %v, Got: %v", "", uuid)
+				}
+			},
+			cleanupFunc: func(svr *httptest.Server) {
+				svr.Close()
+			},
+		},
+		{
+			name: "Failure:: Register Publisher::Non Succes StatusCode Received from Server",
+			setupFunc: func() *httptest.Server {
+				svr := testServer("/register/publisher", func(w http.ResponseWriter, r *http.Request) {
+					var publisher model.Publisher
+					body, err := ioutil.ReadAll(r.Body)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					err = json.Unmarshal(body, &publisher)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					if publisher.Channel != "channel1" {
+						t.Errorf("Want %v, Got %v", "channel1", publisher.Channel)
+					}
+					responseWriter.ResponseWriter(w, http.StatusConflict, "", nil, &model.Response{})
+				})
+				return svr
+			},
+			channel: "channel1",
+			ValidateFunc: func(uuid string, err error) {
+				expectedErr := fmt.Errorf("non success status code received : %v", http.StatusConflict)
+				if err.Error() != expectedErr.Error() {
+					t.Errorf("Want: %v, Got: %v", expectedErr.Error(), err.Error())
+				}
+				if uuid != "" {
+					t.Errorf("Want: %v, Got: %v", "", uuid)
+				}
+			},
+			cleanupFunc: func(svr *httptest.Server) {
+				svr.Close()
+			},
+		},
+		{
+			name: "Failure:: Register Publisher::Unexpected Response",
+			setupFunc: func() *httptest.Server {
+				svr := testServer("/register/publisher", func(w http.ResponseWriter, r *http.Request) {
+					var publisher model.Publisher
+					body, err := ioutil.ReadAll(r.Body)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					err = json.Unmarshal(body, &publisher)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					if publisher.Channel != "channel1" {
+						t.Errorf("Want %v, Got %v", "channel1", publisher.Channel)
+					}
+					responseWriter.ResponseWriter(w, http.StatusCreated, "", "Hello World", &model.Response{})
+				})
+				return svr
+			},
+			channel: "channel1",
+			ValidateFunc: func(uuid string, err error) {
+				expectedErr := fmt.Errorf("unexpected response")
+				if err.Error() != expectedErr.Error() {
+					t.Errorf("Want: %v, Got: %v", expectedErr.Error(), err.Error())
+				}
+				if uuid != "" {
+					t.Errorf("Want: %v, Got: %v", "", uuid)
+				}
+			},
+			cleanupFunc: func(svr *httptest.Server) {
+				svr.Close()
+			},
+		},
+		{
+			name: "Failure:: Register Publisher::Unmarshalling Error",
+			setupFunc: func() *httptest.Server {
+				svr := testServer("/register/publisher", func(w http.ResponseWriter, r *http.Request) {
+					var publisher model.Publisher
+					body, err := ioutil.ReadAll(r.Body)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					err = json.Unmarshal(body, &publisher)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					if publisher.Channel != "channel1" {
+						t.Errorf("Want %v, Got %v", "channel1", publisher.Channel)
+					}
+				})
+				return svr
+			},
+			channel: "channel1",
+			ValidateFunc: func(uuid string, err error) {
+				expectedErr := fmt.Errorf("unexpected end of JSON input")
+				if err.Error() != expectedErr.Error() {
+					t.Errorf("Want: %v, Got: %v", expectedErr.Error(), err.Error())
+				}
+				if uuid != "" {
+					t.Errorf("Want: %v, Got: %v", "", uuid)
+				}
+			},
+			cleanupFunc: func(svr *httptest.Server) {
+				svr.Close()
+			},
+		},
+		{
+			name: "Failure:: Register Publisher::Http Call Fail",
+			setupFunc: func() *httptest.Server {
+				svr := testServer("", func(w http.ResponseWriter, r *http.Request) {})
+				svr.Close()
+				return svr
+			},
+			channel: "channel1",
+			ValidateFunc: func(uuid string, err error) {
+				if err == nil {
+					t.Log(err)
+					t.Errorf("Want: %v, Got: %v", "not nil", nil)
+				}
+				if uuid != "" {
+					t.Errorf("Want: %v, Got: %v", "", uuid)
+				}
+			},
+			cleanupFunc: func(svr *httptest.Server) {
 			},
 		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			//sGrp.Add(1)
-			_, url := testServer("/register/subscriber", tt.mockServerHandler)
-			//defer log.Fatal(router)
-			calls := NewController(url)
-			//reqBody := tt.requestBody
-			//err := calls.RegisterPub("channel")
-			err := calls.RegisterSub(tt.requestBody.method, tt.requestBody.callbackUrl, tt.requestBody.publicKey, tt.requestBody.channel)
-			t.Log(err)
-			tt.ValidateFunc(err)
+			svr := tt.setupFunc()
+			defer tt.cleanupFunc(svr)
+
+			calls := NewController(svr.URL)
+			uuid, err := calls.RegisterPub(tt.channel)
+
+			tt.ValidateFunc(uuid, err)
 		})
 	}
-
 }
 
-func Test_RegiterPub(t *testing.T) {
-	//sGrp := &sync.WaitGroup{}
+func Test_RegisterSub(t *testing.T) {
+	type args struct {
+		httpMethod string
+		callBack   string
+		publicKey  string
+		channel    string
+	}
 	tests := []struct {
 		name              string
-		requestBody       map[string]string
+		reqBody           args
+		setupFunc         func(args) *httptest.Server
 		mockServerHandler func(w http.ResponseWriter, r *http.Request)
 		ValidateFunc      func(err error)
+		cleanupFunc       func(*httptest.Server)
 		expectedResponse  model.Response
 	}{
 		{
-			name:        "Success:: Register Publisher",
-			requestBody: map[string]string{"channel": "c1"},
-			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
-
-				//defer sGrp.Done()
-				log.Print("HIT")
-				var publisher model.Publisher
-				err := parseRequest.ParseAndValidateRequest(r.Body, &publisher)
-				if err != nil {
-					t.Errorf(err.Error())
-					return
-				}
-				responseWriter.ResponseWriter(w, 200, "", map[string]interface{}{
-					"id": "publisher.Id",
-				}, &model.Response{})
+			name: "Success:: Register Subscriber",
+			setupFunc: func(a args) *httptest.Server {
+				svr := testServer("/register/subscriber", func(w http.ResponseWriter, r *http.Request) {
+					var subscriber model.Subscriber
+					body, err := ioutil.ReadAll(r.Body)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					err = json.Unmarshal(body, &subscriber)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					if subscriber.Channel != "channel1" {
+						t.Errorf("Want %v, Got %v", "channel1", subscriber.Channel)
+					}
+					x := model.Subscriber{
+						CallBack: model.CallBack{
+							HttpMethod:  a.httpMethod,
+							CallbackUrl: a.callBack,
+							PublicKey:   a.publicKey,
+						},
+						Channel: a.channel,
+					}
+					if !reflect.DeepEqual(x, subscriber) {
+						t.Errorf("Want %v, Got %v", x, subscriber)
+					}
+					responseWriter.ResponseWriter(w, http.StatusCreated, "", nil, &model.Response{})
+				})
+				return svr
+			},
+			reqBody: args{
+				httpMethod: "GET",
+				callBack:   "http://localhost:8086/pong",
+				publicKey:  "Hello World",
+				channel:    "channel1",
 			},
 			ValidateFunc: func(err error) {
 				if err != nil {
 					t.Errorf("Want: %v, Got: %v", nil, err.Error())
 				}
 			},
+			cleanupFunc: func(svr *httptest.Server) {
+				svr.Close()
+			},
 		},
 		{
-			name:        "Failure:: Register Publisher",
-			requestBody: map[string]string{"channel": ""},
-			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
-				log.Print("HIT")
-
-				responseWriter.ResponseWriter(w, http.StatusBadRequest, constants.IncompleteData, nil, &model.Response{})
+			name: "Failure:: Register Subscriber::Non Success StatusCode Received from Server",
+			setupFunc: func(a args) *httptest.Server {
+				svr := testServer("/register/subscriber", func(w http.ResponseWriter, r *http.Request) {
+					var subscriber model.Subscriber
+					body, err := ioutil.ReadAll(r.Body)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					err = json.Unmarshal(body, &subscriber)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					x := model.Subscriber{
+						CallBack: model.CallBack{
+							HttpMethod:  a.httpMethod,
+							CallbackUrl: a.callBack,
+							PublicKey:   a.publicKey,
+						},
+						Channel: a.channel,
+					}
+					if !reflect.DeepEqual(x, subscriber) {
+						t.Errorf("Want %v, Got %v", x, subscriber)
+					}
+					responseWriter.ResponseWriter(w, http.StatusConflict, "", nil, &model.Response{})
+				})
+				return svr
+			},
+			reqBody: args{
+				httpMethod: "GET",
+				callBack:   "http://localhost:8086/pong",
+				publicKey:  "Hello World",
+				channel:    "channel1",
 			},
 			ValidateFunc: func(err error) {
-				if err == nil {
-					t.Errorf("Want: %v, Got: %v", "Key: 'Publisher.Channel' Error:Field validation for 'Channel' failed on the 'required' tag", nil)
+				expectedErr := fmt.Errorf("non success status code received : %v", http.StatusConflict)
+				if err.Error() != expectedErr.Error() {
+					t.Errorf("Want: %v, Got: %v", expectedErr.Error(), err.Error())
 				}
+			},
+			cleanupFunc: func(svr *httptest.Server) {
+				svr.Close()
+			},
+		},
+
+		{
+			name: "Failure:: Register Subscriber::Http Call Fail",
+			setupFunc: func(a args) *httptest.Server {
+				svr := testServer("", func(w http.ResponseWriter, r *http.Request) {})
+				svr.Close()
+				return svr
+			},
+			reqBody: args{
+				httpMethod: "GET",
+				callBack:   "http://localhost:8086/pong",
+				publicKey:  "Hello World",
+				channel:    "channel1",
+			},
+			ValidateFunc: func(err error) {
+				t.Log(err)
+				if err == nil {
+					t.Errorf("Want: %v, Got: %v", "not nil", nil)
+				}
+			},
+			cleanupFunc: func(svr *httptest.Server) {
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			//sGrp.Add(1)
-			_, url := testServer("/register/publisher", tt.mockServerHandler)
-			//defer log.Fatal(router)
-			calls := NewController(url)
-			//reqBody := tt.requestBody
-			key, err := calls.RegisterPub("channel")
-			t.Log(err)
-			t.Log(key)
-			tt.ValidateFunc(err)
-			//t.Log(key)
+			svr := tt.setupFunc(tt.reqBody)
+			defer tt.cleanupFunc(svr)
 
+			calls := NewController(svr.URL)
+			err := calls.RegisterSub(tt.reqBody.httpMethod, tt.reqBody.callBack, tt.reqBody.publicKey, tt.reqBody.channel)
+
+			tt.ValidateFunc(err)
 		})
 	}
 }
-func Test_UpdateSubs(t *testing.T) {
-	type tempStruct struct {
+
+func Test_PushMsg(t *testing.T) {
+	type args struct {
 		msg     string
-		key     string
+		uuid    string
 		channel string
 	}
 	tests := []struct {
 		name              string
-		requestBody       tempStruct
+		reqBody           args
+		setupFunc         func(args) *httptest.Server
 		mockServerHandler func(w http.ResponseWriter, r *http.Request)
-		ValidateFunc      func(error)
+		ValidateFunc      func(err error)
+		cleanupFunc       func(*httptest.Server)
 		expectedResponse  model.Response
 	}{
 		{
-			name:        "Success:: PushMsg",
-			requestBody: tempStruct{msg: "Hello World", channel: "c1"},
-			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
+			name: "Success:: PushMsg",
+			setupFunc: func(a args) *httptest.Server {
+				svr := testServer("/publish", func(w http.ResponseWriter, r *http.Request) {
+					var update model.Updates
+					body, err := ioutil.ReadAll(r.Body)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					err = json.Unmarshal(body, &update)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
 
-				//defer sGrp.Done()
-				log.Print("HIT")
-				var update model.Updates
-				err := parseRequest.ParseAndValidateRequest(r.Body, &update)
-				if err != nil {
-					t.Errorf(err.Error())
-					return
-				}
-				responseWriter.ResponseWriter(w, 200, "", nil, &model.Response{})
+					x := model.Updates{
+						Publisher: model.Publisher{
+							Id:      a.uuid,
+							Channel: a.channel,
+						},
+						Update: a.msg,
+					}
+					if !reflect.DeepEqual(x, update) {
+						t.Errorf("Want %v, Got %v", x, update)
+					}
+					responseWriter.ResponseWriter(w, http.StatusOK, "", nil, &model.Response{})
+				})
+				return svr
+			},
+			reqBody: args{
+				msg:     "Hello World",
+				uuid:    "b2ae109d-1382-4b1c-a8ab-5a9d04555e4e",
+				channel: "channel1",
 			},
 			ValidateFunc: func(err error) {
 				if err != nil {
 					t.Errorf("Want: %v, Got: %v", nil, err.Error())
 				}
 			},
+			cleanupFunc: func(svr *httptest.Server) {
+				svr.Close()
+			},
 		},
 		{
-			name:        "Failure::PushMsg",
-			requestBody: tempStruct{msg: "Hello World", channel: ""},
-			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
+			name: "Failure:: PushMsg ::Non Success StatusCode Received from Server",
+			setupFunc: func(a args) *httptest.Server {
+				svr := testServer("/publish", func(w http.ResponseWriter, r *http.Request) {
+					var update model.Updates
+					body, err := ioutil.ReadAll(r.Body)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
+					err = json.Unmarshal(body, &update)
+					if err != nil {
+						t.Log(err.Error())
+						t.Fail()
+					}
 
-				//defer sGrp.Done()
-				log.Print("HIT")
-
-				responseWriter.ResponseWriter(w, 400, "", nil, &model.Response{})
+					x := model.Updates{
+						Publisher: model.Publisher{
+							Id:      a.uuid,
+							Channel: a.channel,
+						},
+						Update: a.msg,
+					}
+					if !reflect.DeepEqual(x, update) {
+						t.Errorf("Want %v, Got %v", x, update)
+					}
+					responseWriter.ResponseWriter(w, http.StatusConflict, "", nil, &model.Response{})
+				})
+				return svr
+			},
+			reqBody: args{
+				msg:     "Hello World",
+				uuid:    "b2ae109d-1382-4b1c-a8ab-5a9d04555e4e",
+				channel: "channel1",
 			},
 			ValidateFunc: func(err error) {
-				if err == nil {
-					t.Errorf("Want: %v, Got: %v", "non success status code received : 400", nil)
+				expectedErr := fmt.Errorf("non success status code received : %v", http.StatusConflict)
+				if err.Error() != expectedErr.Error() {
+					t.Errorf("Want: %v, Got: %v", expectedErr.Error(), err.Error())
 				}
+			},
+			cleanupFunc: func(svr *httptest.Server) {
+				svr.Close()
+			},
+		},
+
+		{
+			name: "Failure:: PushMsg ::Http Call Fail",
+			setupFunc: func(a args) *httptest.Server {
+				svr := testServer("", func(w http.ResponseWriter, r *http.Request) {})
+				svr.Close()
+				return svr
+			},
+			reqBody: args{
+				msg:     "Hello World",
+				uuid:    "b2ae109d-1382-4b1c-a8ab-5a9d04555e4e",
+				channel: "channel1",
+			},
+			ValidateFunc: func(err error) {
+				t.Log(err)
+				if err == nil {
+					t.Errorf("Want: %v, Got: %v", "not nil", nil)
+				}
+			},
+			cleanupFunc: func(svr *httptest.Server) {
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, url := testServer("/publish", tt.mockServerHandler)
-			//defer log.Fatal(router)
-			calls := NewController(url)
-			reqBody := tt.requestBody
-			err := calls.PushMsg(reqBody.msg, "", reqBody.channel)
-			t.Log(err)
+
+			svr := tt.setupFunc(tt.reqBody)
+			defer tt.cleanupFunc(svr)
+
+			calls := NewController(svr.URL)
+			err := calls.PushMsg(tt.reqBody.msg, tt.reqBody.uuid, tt.reqBody.channel)
 
 			tt.ValidateFunc(err)
 		})
 	}
-
 }
 
-/*
-func testClient(c *TestServer, encrypted bool) {
-	//expected := "dummy data"
-	calls := NewController("http://localhost:9090")
-	var privateKey *rsa.PrivateKey
-	var err error
-
-	if encrypted {
-		privateKey, err = rsa.GenerateKey(rand.Reader, 2048)
-
-		if err != nil {
-			c.t.Log(err.Error())
-		}
-
-	}
-	router := mux.NewRouter()
-	router.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		x := calls.ExtractMsg(r.Body, privateKey)
-		msg := x()
-		c.t.Errorf(msg)
-	}).Methods(http.MethodPost)
-	svr := httptest.NewServer(router)
-	var url = svr.URL + "/ping"
-	c.srv = svr
-	c.t.Log(privateKey)
-	var pubKey = ""
-	if privateKey != nil {
-		publicKey := privateKey.PublicKey
-		pubKey = crypt.KeyAsPEMStr(&publicKey)
-		c.t.Log(pubKey)
-	}
-}
-
-type TestServer struct {
-	srv *httptest.Server
-	t   *testing.T
-	i   controllerInterface.IController
-	wg  *sync.WaitGroup
-}*/
-
-func Test_ReceiveMessage(t *testing.T) {
-	type tempStruct struct {
-		msg     string
-		key     string
-		channel string
-	}
+func Test_ExtractMessage(t *testing.T) {
 	tests := []struct {
-		name              string
-		requestBody       io.ReadCloser
-		setupFunc         func() (string, *rsa.PrivateKey)
-		mockServerHandler func(http.ResponseWriter, *http.Request)
-		ValidateFunc      func(error)
-		expectedResponse  model.Response
+		name         string
+		requestBody  io.ReadCloser
+		setupFunc    func() (io.ReadCloser, *rsa.PrivateKey)
+		ValidateFunc func(string, error)
 	}{
 		{
-			name:        "Success:: Update Subscribers",
-			requestBody: io.NopCloser(strings.NewReader("Hello, world!")),
-			setupFunc: func() (string, *rsa.PrivateKey) {
+			name: "Success:: ExtractMsg",
+			setupFunc: func() (io.ReadCloser, *rsa.PrivateKey) {
 				privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
 				if err != nil {
 					t.Log(err.Error())
-					return "", nil
+					t.Fail()
+					return nil, nil
 				}
 				publicKey := privateKey.PublicKey
 				cipherMsg, err := crypt.RsaOaepEncrypt("Hello, world!", publicKey)
 				if err != nil {
 					t.Log(err.Error())
-					return "", nil
+					t.Fail()
+					return nil, nil
 				}
-				return cipherMsg, privateKey
+				return io.NopCloser(bytes.NewReader([]byte(cipherMsg))), privateKey
 			},
-			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
-
-				//defer sGrp.Done()
-				log.Print("HIT")
-				var update model.Updates
-				err := parseRequest.ParseAndValidateRequest(r.Body, &update)
-				if err != nil {
-					t.Errorf(err.Error())
-					return
-				}
-				responseWriter.ResponseWriter(w, 200, "", nil, &model.Response{})
-			},
-			ValidateFunc: func(err error) {
+			ValidateFunc: func(msg string, err error) {
 				if err != nil {
 					t.Errorf("Want: %v, Got: %v", nil, err.Error())
+				}
+				if msg != "Hello, world!" {
+					t.Errorf("Want: %v, Got: %v", "Hello, world!", msg)
 				}
 			},
 		},
 		{
-			name:        "Failure:: Update Subscribers",
-			requestBody: io.NopCloser(strings.NewReader("Hello, world!")),
-			setupFunc: func() (string, *rsa.PrivateKey) {
+			name: "Failure:: ExtractMsg:: Decryption Fail",
+			setupFunc: func() (io.ReadCloser, *rsa.PrivateKey) {
 				privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
 				if err != nil {
 					t.Log(err.Error())
-					return "", nil
+					t.Fail()
+					return nil, nil
 				}
 				publicKey := privateKey.PublicKey
 				cipherMsg, err := crypt.RsaOaepEncrypt("Hello, world!", publicKey)
 				if err != nil {
 					t.Log(err.Error())
-					return "", nil
+					t.Fail()
+					return nil, nil
 				}
-				privateKey.E = 100
-				return cipherMsg, privateKey
+				privateKey.E = 123
+				return io.NopCloser(bytes.NewReader([]byte(cipherMsg))), privateKey
 			},
-			mockServerHandler: func(w http.ResponseWriter, r *http.Request) {
-
-				//defer sGrp.Done()
-				log.Print("HIT")
-				var update model.Updates
-				err := parseRequest.ParseAndValidateRequest(r.Body, &update)
-				if err != nil {
-					t.Errorf(err.Error())
-					return
+			ValidateFunc: func(msg string, err error) {
+				t.Log(err)
+				if err == nil {
+					t.Errorf("Want: %v, Got: %v", "not nil", nil)
 				}
-				responseWriter.ResponseWriter(w, 200, "", nil, &model.Response{})
+				if msg != "" {
+					t.Errorf("Want: %v, Got: %v", "", msg)
+				}
 			},
-			ValidateFunc: func(err error) {
+		},
+		{
+			name: "Success:: ExtractMsg:: Without Encryption",
+			setupFunc: func() (io.ReadCloser, *rsa.PrivateKey) {
+				cipherMsg := "Hello world!"
+				return io.NopCloser(bytes.NewReader([]byte(cipherMsg))), nil
+			},
+			ValidateFunc: func(msg string, err error) {
 				if err != nil {
 					t.Errorf("Want: %v, Got: %v", nil, err.Error())
+				}
+				if msg != "Hello world!" {
+					t.Errorf("Want: %v, Got: %v", "Hello, world!", msg)
+				}
+			},
+		},
+		{
+			name: "Failure:: ExtractMsg:: Source nil",
+			setupFunc: func() (io.ReadCloser, *rsa.PrivateKey) {
+				return nil, nil
+			},
+			ValidateFunc: func(msg string, err error) {
+				expectedErr := fmt.Errorf("source cannot be nil")
+				if err.Error() != expectedErr.Error() {
+					t.Errorf("Want: %v, Got: %v", expectedErr.Error(), err.Error())
+				}
+				if msg != "" {
+					t.Errorf("Want: %v, Got: %v", "", msg)
 				}
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, url := testServer("/publish", tt.mockServerHandler)
-			//defer log.Fatal(router)
-			calls := NewController(url)
-			reqBody := tt.requestBody
-			err := calls.ExtractMsg(key)
-			t.Log(err)
-			getMsg := c
-			tt.ValidateFunc(getMsg(readClosure))
+			msg, key := tt.setupFunc()
+
+			calls := NewController("")
+			extractMsg := calls.ExtractMsg(key)
+			s, err := extractMsg(msg)
+
+			tt.ValidateFunc(s, err)
 		})
 	}
 
