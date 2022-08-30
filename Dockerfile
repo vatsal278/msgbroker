@@ -1,11 +1,8 @@
 # Start from golang base image
-FROM golang:alpine as builder
+FROM golang:1.18-alpine as builder
 
 # Enable go modules
 ENV GO111MODULE=on
-
-# Install git. (alpine image does not have git in it)
-RUN apk update && apk add --no-cache git
 
 # Set current working directory
 WORKDIR /app
@@ -15,11 +12,11 @@ WORKDIR /app
 # first copying go.mod and go.sum files and downloading them,
 # to be used every time we build the image if the dependencies
 # are not changed.
-
-COPY . .
-
+COPY go.mod .
 # Download all dependencies.
 RUN go mod download
+
+COPY . .
 
 # Note here: CGO_ENABLED is disabled for cross system compilation
 # It is also a common best practise.
@@ -32,8 +29,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main cmd/main.go
 # Start a new stage from scratch
 FROM scratch
 
-ARG PORT
-EXPOSE $PORT
+#EXPOSE 9090
 
 # Copy the Pre-built binary file
 COPY --from=builder /app/main .

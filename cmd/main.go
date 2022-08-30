@@ -11,6 +11,10 @@ import (
 
 func main() {
 	r := router.Router()
-	fmt.Println("Connected to port " + os.Getenv("PORT"))
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), r))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "9090"
+	}
+	fmt.Println("Connected to port " + port)
+	log.Fatal(http.ListenAndServe(":"+port, r))
 }
