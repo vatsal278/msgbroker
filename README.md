@@ -85,6 +85,15 @@ You can test the api using post man, just import the [collection](https://github
 ### You can also run this api locally using below steps: 
 * Start the MsgBrokerSvc locally with command : `go run cmd/main.go`
 
+### In order to use the SDK functions:
+* create a new controller and pass url to the msg broker server : ```controller := sdk.NewController("http://localhost:9090")```
+* To register as a publisher : `uuid, err := controller.RegisterPub("channel")`
+* To push messages to all the subscribers to that channel pass the message, uuid which you got when registering as publisher along with channel name : ``err := calls.PushMsg(`{"data":"hello world"}`, uuid, "channel")``
+* To register as a subscriber pass the subscriber details as httpmethod, subscriberurl, publickey(optional:if want to get non encrypted message otherwise send an empty string) : `err := controller.RegisterSub("POST", "http://localhost:9091/ping", pubKey, "c11")`
+* To extract the message sent by the publisher : 
+* `extractMsg := controller.ExtractMsg(privateKey) `
+* `s, err := extractMsg(io.ReadClosure)`
+
 ### In order to test the publisher service:
 * start the msgbrokersvc
 * cd publisherTest
