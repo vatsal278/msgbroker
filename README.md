@@ -6,7 +6,7 @@
 #### This api is completely unit tested and all the errors have been handled
 ## Api Interface
 
-You can test the api using post man, just import the [collection](https://github.com/vatsal278/be-blog-system-challenge/blob/bf641b8a01a9053d873a06691d24c7f212d3f5b6/docs/Blog%20System%20Collection.postman_collection.json)`collection into your postman app.
+You can test the api using post man, just import the [collection](https://github.com/vatsal278/msgbroker/blob/master/docs/New%20Collection.postman_collection.json)`collection into your postman app.
 
 ### Register a Publisher
 - Method: `POST`
