@@ -1,12 +1,34 @@
-## This is a message broker service API.
+## Message Broker Service
 
-#### This Rest API was created using Golang. It features functions like registering publisher or subscriber, publishing messages or extracting updates.
+* This Rest API was created using Golang. It features functions like registering publisher or subscriber, publishing messages or extracting updates.
+* This utilises RSA encryption and the key can be passed to the functions for encryption/decryption, following a required format.
+* This api has used clean code principle 
+* This api is completely unit tested and all the errors have been handled
 
-#### This api has used clean code principle 
-#### This api is completely unit tested and all the errors have been handled
-## Api Interface
+#### Formatting the `RSA key`
+* `RSA key` can be supplied by the user
+* The `RSA public key` follows a specific format that can be obtained by the pkg function
+```
+import "github.com/vatsal278/msgbroker/pkg/crypt"
+.
+.
+pubKey := crypt.KeyAsPEMStr(RSA public key)
+//pubKey is the string formating of the RSA public key that will be used for subscriber registration
+```
+## Starting the message broker service
 
-You can test the api using post man, just import the [collection](https://github.com/vatsal278/msgbroker/blob/master/docs/New%20Collection.postman_collection.json)`collection into your postman app.
+* Running locally : 
+```
+go run cmd/main.go
+```
+* Running via docker :
+```
+docker build -t msgbrokersvc .
+docker run -p 9090:9090 msgbrokersvc
+```
+## API Spec
+
+You can test the api using post man, just import the [collection](./docs/New%20Collection.postman_collection.json) into your postman app.
 
 ### Register a Publisher
 - Method: `POST`
@@ -14,7 +36,7 @@ You can test the api using post man, just import the [collection](https://github
 - Request Body:
 ```
 {
-    "channel": "channel x",
+    "channel": "channel",
 }
 ```
 - Response Header: `HTTP 201`
@@ -24,7 +46,7 @@ You can test the api using post man, just import the [collection](https://github
     "status": 201,
     "message": "Successfully Registered as publisher to the channel",
     "data": {
-      "id": "8a6d08a1-0cc3-451a-a66e-474fbf16a781"
+      "id": "Uuid"
     }
 }
 ```
@@ -37,10 +59,10 @@ You can test the api using post man, just import the [collection](https://github
 {
     "callback":{
           "httpmethod":"POST",
-          "callbackUrl":"http://localhost:8080/ping",
-          "key":"",
-          },
-    "channel": "channel x",
+          "callbackUrl":"URL",
+          "key":"RSA public  key (in pem string format)"
+    },
+    "channel": "channel"
 }
 ```
 - Response Header: `HTTP 201`
@@ -60,10 +82,10 @@ You can test the api using post man, just import the [collection](https://github
 ```
 {
     "publisher": {
-        "id": "8a6d08a1-0cc3-451a-a66e-474fbf16a781",
-        "channel": "c1"
+        "id": "Uuid",
+        "channel": "channel"
     },
-    "update": "{\"data\":\"hello world\"}"
+    "update": "message"
 }
 ```
 - Response Header: `HTTP 200`
@@ -76,38 +98,51 @@ You can test the api using post man, just import the [collection](https://github
 }
 ```
 
-### In order to use this Api:
-
-* clone the repo : `git clone https://github.com/vatsal278/msgbroker`
-* build the docker file using command : `docker build -t msgbrokersvc .`
-* run the docker container : `docker run --rm --env PORT=9090 -p 9099:9090 msgbrokersvc`
-
-### You can also run this api locally using below steps: 
-* Start the MsgBrokerSvc locally with command : `go run cmd/main.go`
 
 ### In order to use the SDK functions:
-* create a new controller and pass url to the msg broker server : 
-```controller := sdk.NewController("http://localhost:9090")```
-* To register as a publisher : 
-```uuid, err := controller.RegisterPub("channel")```
-* To push messages to all the subscribers to that channel pass the message, uuid which you got when registering as publisher along with channel name : 
-``err := calls.PushMsg(`{"data":"hello world"}`, uuid, "channel")``
-* To register as a subscriber pass the subscriber details as httpmethod, subscriberurl, publickey(optional:if want to get non encrypted message otherwise send an empty string) : 
-```err := controller.RegisterSub("POST", "http://localhost:9091/ping", pubKey, "c11")```
-* To extract the message sent by the publisher : 
-```extractMsg := controller.ExtractMsg(privateKey) ```
-```s, err := extractMsg(io.ReadClosure)```
+* `go get` the package 
+```
+go get github.com/vatsal278/msgbroker
+```
+* `import` the `sdk` package in the source code
+```
+import "github.com/vatsal278/msgbroker/pkg/sdk"
+```
+* Get an instance to the SDK Wrapper, Passing in the url to a running message broker service.
+```
+s := sdk.NewMsgBrokerSvc("Message broker service url")
+```
+* Register a publisher to push messages to a `channel`. A Uuid of the publisher will be returned that needs to be used to push message to the `channel`.
+```
+uuid, _ := s.RegisterPub("channel")
+```
+* Register a subscriber to receive messages on a `channel`. 
+Send in the `HTTP method`, `URL` to the subscriber endpoint, optional `RSA public key` 
+(this will be used by the message broker to encrypt the message before notifying the subscriber) and the `channel`
+```
+_ = s.RegisterSub("HTTP method", "URL", "RSA public key", "channel")
+```
+* Push `message` to all the subscribers registered on the `channel` using the registered publishers `Uuid`.
+```
+_ = s.PushMsg(`message`, Uuid, "channel")
+```
+* Extract `message` pushed to the subscriber registered on the `channel`, additionally decrypting with `RSA private key`,
+if opted for receiving encrypted messages during subscriber registration.
+`source` is of type `io.ReadClosure` which can be requests body.
+```
+MsgExtractor := s.ExtractMsg(RSA private key)
+msg, _ := MsgExtractor(source)
+```
+* Examples of the sdk usage can be found [here](./example)
 
-### In order to test the publisher service:
-* start the msgbrokersvc
-* cd publisherTest
-* go run main.go
-
-### In order to test the subscriber service:
-* start the msgbrokersvc
-* cd subscriberTest
-* go run main.go
-
+## Additional read
+* [Docs](./docs/README.md)
+* To check the code coverage 
+```
+cd docs
+go tool cover -html=coverage
+```
+  
 
 
 

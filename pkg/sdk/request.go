@@ -17,7 +17,7 @@ type msgBrokerSvc struct {
 	msgbrokerUrl string
 }
 
-func NewController(url string) MsgBrokerSvcI {
+func NewMsgBrokerSvc(url string) MsgBrokerSvcI {
 	return &msgBrokerSvc{
 		msgbrokerUrl: url,
 	}

@@ -243,7 +243,7 @@ func Test_RegisterPub(t *testing.T) {
 			svr := tt.setupFunc()
 			defer tt.cleanupFunc(svr)
 
-			calls := NewController(svr.URL)
+			calls := NewMsgBrokerSvc(svr.URL)
 			uuid, err := calls.RegisterPub(tt.channel)
 
 			tt.ValidateFunc(uuid, err)
@@ -391,7 +391,7 @@ func Test_RegisterSub(t *testing.T) {
 			svr := tt.setupFunc(tt.reqBody)
 			defer tt.cleanupFunc(svr)
 
-			calls := NewController(svr.URL)
+			calls := NewMsgBrokerSvc(svr.URL)
 			err := calls.RegisterSub(tt.reqBody.httpMethod, tt.reqBody.callBack, tt.reqBody.publicKey, tt.reqBody.channel)
 
 			tt.ValidateFunc(err)
@@ -532,7 +532,7 @@ func Test_PushMsg(t *testing.T) {
 			svr := tt.setupFunc(tt.reqBody)
 			defer tt.cleanupFunc(svr)
 
-			calls := NewController(svr.URL)
+			calls := NewMsgBrokerSvc(svr.URL)
 			err := calls.PushMsg(tt.reqBody.msg, tt.reqBody.uuid, tt.reqBody.channel)
 
 			tt.ValidateFunc(err)
@@ -638,7 +638,7 @@ func Test_ExtractMessage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			msg, key := tt.setupFunc()
 
-			calls := NewController("")
+			calls := NewMsgBrokerSvc("")
 			extractMsg := calls.ExtractMsg(key)
 			s, err := extractMsg(msg)
 
