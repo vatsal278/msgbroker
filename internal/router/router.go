@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/vatsal278/msgbroker/internal/handler/controller"
@@ -18,7 +17,6 @@ func Router() *mux.Router {
 	router.HandleFunc("/register/publisher", i.RegisterPublisher()).Methods(http.MethodPost)
 	router.HandleFunc("/publish", i.PublishMessage()).Methods(http.MethodPost)
 	http.Handle("/", router)
-	fmt.Println("Connected to port " + "8080")
 
 	return router
 }

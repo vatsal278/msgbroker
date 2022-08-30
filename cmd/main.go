@@ -1,14 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/vatsal278/msgbroker/internal/router"
 )
 
 func main() {
 	r := router.Router()
-	log.Fatal(http.ListenAndServe(":"+"9090", r))
-
+	fmt.Println("Connected to port " + os.Getenv("PORT"))
+	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), r))
 }
