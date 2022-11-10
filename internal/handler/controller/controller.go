@@ -20,6 +20,8 @@ type models struct {
 	messageBroker model.MessageBroker
 }
 
+const MsgBrokerUserAgent = "MessageBroker"
+
 func NewController() controllerInterface.IController {
 	return &models{
 		messageBroker: model.MessageBroker{
@@ -143,6 +145,7 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 				request.Header.Set("Content-Type", "application/json")
+				request.Header.Set("User-Agent", MsgBrokerUserAgent)
 				log.Printf("%+v \n", *request)
 				client.Do(request)
 			}(v)
