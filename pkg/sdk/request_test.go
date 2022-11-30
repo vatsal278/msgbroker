@@ -74,7 +74,7 @@ func Test_RegisterPub(t *testing.T) {
 			},
 		},
 		{
-			name: "Failure:: Register Publisher:: ReadAll failure",
+			name: "Failure:: Register Publisher:: ReadAll Failure",
 			setupFunc: func() *httptest.Server {
 				svr := testServer("/register/publisher", func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Set("Content-Length", "1")
