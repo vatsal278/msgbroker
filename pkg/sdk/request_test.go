@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/vatsal278/msgbroker/model"
@@ -66,6 +67,27 @@ func Test_RegisterPub(t *testing.T) {
 				}
 				if uuid != "b2ae109d-1382-4b1c-a8ab-5a9d04555e4e" {
 					t.Errorf("Want: %v, Got: %v", "b2ae109d-1382-4b1c-a8ab-5a9d04555e4e", uuid)
+				}
+			},
+			cleanupFunc: func(svr *httptest.Server) {
+				svr.Close()
+			},
+		},
+		{
+			name: "Failure:: Register Publisher:: ReadAll Failure",
+			setupFunc: func() *httptest.Server {
+				svr := testServer("/register/publisher", func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Length", "1")
+					responseWriter.ResponseWriter(w, http.StatusCreated, "", map[string]interface{}{
+						"id": "b2ae109d-1382-4b1c-a8ab-5a9d04555e4e",
+					}, &model.Response{})
+				})
+				return svr
+			},
+			channel: "channel1",
+			ValidateFunc: func(uuid string, err error) {
+				if err.Error() != errors.New("unexpected EOF").Error() {
+					t.Errorf("Want: %v, Got: %v", nil, err.Error())
 				}
 			},
 			cleanupFunc: func(svr *httptest.Server) {
@@ -361,7 +383,6 @@ func Test_RegisterSub(t *testing.T) {
 				svr.Close()
 			},
 		},
-
 		{
 			name: "Failure:: Register Subscriber::Http Call Fail",
 			setupFunc: func(a args) *httptest.Server {
