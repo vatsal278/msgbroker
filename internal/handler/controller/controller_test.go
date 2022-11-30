@@ -499,8 +499,8 @@ func TestPublishMessage(t *testing.T) {
 				tStruct.wg.Add(1)
 				testClient(tStruct, false)
 
-				var x *models = i.(*models)
-				var y model.Updates = reqbody.(model.Updates)
+				var x = i.(*models)
+				var y = reqbody.(model.Updates)
 				m, ok := x.messageBroker.PubM[y.Publisher.Channel]
 				if !ok {
 					m = make(map[string]struct{})

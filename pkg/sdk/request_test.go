@@ -87,7 +87,7 @@ func Test_RegisterPub(t *testing.T) {
 			channel: "channel1",
 			ValidateFunc: func(uuid string, err error) {
 				if err.Error() != errors.New("unexpected EOF").Error() {
-					t.Errorf("Want: %v, Got: %v", "unexpectedEOF", err.Error())
+					t.Errorf("Want: %v, Got: %v", nil, err.Error())
 				}
 			},
 			cleanupFunc: func(svr *httptest.Server) {
@@ -383,7 +383,6 @@ func Test_RegisterSub(t *testing.T) {
 				svr.Close()
 			},
 		},
-
 		{
 			name: "Failure:: Register Subscriber::Http Call Fail",
 			setupFunc: func(a args) *httptest.Server {
