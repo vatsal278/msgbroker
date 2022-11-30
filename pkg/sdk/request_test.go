@@ -87,7 +87,7 @@ func Test_RegisterPub(t *testing.T) {
 			channel: "channel1",
 			ValidateFunc: func(uuid string, err error) {
 				if err.Error() != errors.New("unexpected EOF").Error() {
-					t.Errorf("Want: %v, Got: %v", nil, err.Error())
+					t.Errorf("Want: %v, Got: %v", "unexpected EOF", err.Error())
 				}
 			},
 			cleanupFunc: func(svr *httptest.Server) {
