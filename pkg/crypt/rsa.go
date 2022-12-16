@@ -72,7 +72,7 @@ func PEMStrAsPrivKey(pubKey string) (*rsa.PrivateKey, error) {
 	}
 	spkiBlock, _ := pem.Decode(decodeString)
 	if spkiBlock == nil || spkiBlock.Type != "RSA PRIVATE KEY" {
-		err := errors.New("failed to decode PEM block containing public key")
+		err := errors.New("failed to decode PEM block containing private key")
 		return nil, err
 	}
 	pubInterface, err := x509.ParsePKCS1PrivateKey(spkiBlock.Bytes)

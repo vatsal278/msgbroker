@@ -178,7 +178,7 @@ func Test_RSA_OAEP_Decrypt(t *testing.T) {
 	}
 }
 
-func Test_KeyAsPEMStr(t *testing.T) {
+func Test_PubKeyAsPEMStr(t *testing.T) {
 
 	tests := []struct {
 		name        string
@@ -195,7 +195,7 @@ func Test_KeyAsPEMStr(t *testing.T) {
 				return privKey, pubKey, err
 			},
 			validation: func(x string, pubKey *rsa.PublicKey) {
-				y, _ := PEMStrAsKey(x)
+				y, _ := PEMStrAsPubKey(x)
 				if !reflect.DeepEqual(y, pubKey) {
 					t.Errorf("Want: %v, Got: %v", pubKey, y)
 				}
@@ -205,7 +205,7 @@ func Test_KeyAsPEMStr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, pubKey, _ := tt.setupFunc()
-			x := KeyAsPEMStr(&pubKey)
+			x := PubKeyAsPEMStr(&pubKey)
 			tt.validation(x, &pubKey)
 
 		})
@@ -225,7 +225,7 @@ func Test_PEMStrAsKey(t *testing.T) {
 			setupFunc: func() (string, rsa.PublicKey) {
 				privKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 				pubKey := privKey.PublicKey
-				x := KeyAsPEMStr(&pubKey)
+				x := PubKeyAsPEMStr(&pubKey)
 				return x, pubKey
 			},
 			validation: func(newPubKey *rsa.PublicKey, pubKey *rsa.PublicKey, err error) {
@@ -302,7 +302,7 @@ func Test_PEMStrAsKey(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pemStr, pubKey := tt.setupFunc()
-			newPubKey, err := PEMStrAsKey(pemStr)
+			newPubKey, err := PEMStrAsPubKey(pemStr)
 			t.Log(err)
 			tt.validation(newPubKey, &pubKey, err)
 
