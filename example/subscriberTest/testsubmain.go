@@ -55,7 +55,7 @@ func main() {
 
 	}
 	publicKey := privateKey.PublicKey
-	pubKey := crypt.KeyAsPEMStr(&publicKey)
+	pubKey := crypt.PubKeyAsPEMStr(&publicKey)
 	log.Printf("This is public key \n%v", pubKey)
 	calls := sdk.NewMsgBrokerSvc("http://localhost:9090")
 	err = calls.RegisterSub("POST", "http://localhost:8086/ping", pubKey, "c11")

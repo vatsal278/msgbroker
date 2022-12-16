@@ -384,7 +384,7 @@ func testClient(c *TestServer, encrypted bool) {
 	var pubKey = ""
 	if privateKey != nil {
 		publicKey := privateKey.PublicKey
-		pubKey = crypt.KeyAsPEMStr(&publicKey)
+		pubKey = crypt.PubKeyAsPEMStr(&publicKey)
 		c.t.Log(pubKey)
 	}
 

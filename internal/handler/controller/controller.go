@@ -126,7 +126,7 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 				if v.CallBack.PublicKey != "" {
 
 					PublicKey := v.CallBack.PublicKey
-					PubKey, err := crypt.PEMStrAsKey(PublicKey)
+					PubKey, err := crypt.PEMStrAsPubKey(PublicKey)
 					if err != nil {
 						log.Print(err.Error())
 						return
@@ -147,13 +147,7 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 				request.Header.Set("Content-Type", "application/json")
 				request.Header.Set("User-Agent", MsgBrokerUserAgent)
 				log.Printf("%+v \n", *request)
-				res, err := client.Do(request)
-
-				log.Print(res)
-				if err != nil {
-					log.Print(err)
-					return
-				}
+				client.Do(request)
 			}(v)
 
 		}
