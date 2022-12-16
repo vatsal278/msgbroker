@@ -126,7 +126,7 @@ func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 				if v.CallBack.PublicKey != "" {
 
 					PublicKey := v.CallBack.PublicKey
-					PubKey, err := crypt.PEMStrAsKey(PublicKey)
+					PubKey, err := crypt.PEMStrAsPubKey(PublicKey)
 					if err != nil {
 						log.Print(err.Error())
 						return
