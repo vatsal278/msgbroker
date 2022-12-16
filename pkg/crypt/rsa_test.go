@@ -220,7 +220,7 @@ func Test_PrivKeyAsPEMStr(t *testing.T) {
 		validation  func(string, *rsa.PrivateKey)
 	}{
 		{
-			name:        "Success::KeyAsPEMStr",
+			name:        "Success::PrivKeyAsPEMStr",
 			requestBody: "Hello World",
 			setupFunc: func() (*rsa.PrivateKey, error) {
 				privKey, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -252,7 +252,7 @@ func Test_PEMStrAsPubKey(t *testing.T) {
 		validation  func(*rsa.PublicKey, *rsa.PublicKey, error)
 	}{
 		{
-			name:        "Success::PEMStrAsKey",
+			name:        "Success::PEMStrAsPubKey",
 			requestBody: "Hello World",
 			setupFunc: func() (string, rsa.PublicKey) {
 				privKey, _ := rsa.GenerateKey(rand.Reader, 2048)
@@ -267,7 +267,7 @@ func Test_PEMStrAsPubKey(t *testing.T) {
 			},
 		},
 		{
-			name:        "Failure::PEMStrAsKey::failed to decode PEM block::Empty Public Key",
+			name:        "Failure::PEMStrAsPubKey::failed to decode PEM block::Empty Public Key",
 			requestBody: "Hello World",
 			setupFunc: func() (string, rsa.PublicKey) {
 				privKey, _ := rsa.GenerateKey(rand.Reader, 2048)
@@ -285,7 +285,7 @@ func Test_PEMStrAsPubKey(t *testing.T) {
 			},
 		},
 		{
-			name:        "Failure::PEMStrAsKey::failed to decode PEM block::Incorrect PEM type",
+			name:        "Failure::PEMStrAsPubKey::failed to decode PEM block::Incorrect PEM type",
 			requestBody: "Hello World",
 			setupFunc: func() (string, rsa.PublicKey) {
 				privKey, _ := rsa.GenerateKey(rand.Reader, 2048)
@@ -308,7 +308,7 @@ func Test_PEMStrAsPubKey(t *testing.T) {
 			},
 		},
 		{
-			name:        "Failure::PEMStrAsKey::illegal base64 data",
+			name:        "Failure::PEMStrAsPubKey::illegal base64 data",
 			requestBody: "Hello World",
 			setupFunc: func() (string, rsa.PublicKey) {
 				privKey, _ := rsa.GenerateKey(rand.Reader, 2048)
@@ -335,7 +335,6 @@ func Test_PEMStrAsPubKey(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			pemStr, pubKey := tt.setupFunc()
 			newPubKey, err := PEMStrAsPubKey(pemStr)
-			t.Log(err)
 			tt.validation(newPubKey, &pubKey, err)
 
 		})
@@ -350,7 +349,7 @@ func Test_PEMStrAsPrivKey(t *testing.T) {
 		validation  func(*rsa.PrivateKey, *rsa.PrivateKey, error)
 	}{
 		{
-			name:        "Success::PEMStrAsKey",
+			name:        "Success::PEMStrAsPrivKey",
 			requestBody: "Hello World",
 			setupFunc: func() (string, rsa.PrivateKey) {
 				privKey, _ := rsa.GenerateKey(rand.Reader, 2048)
@@ -364,7 +363,7 @@ func Test_PEMStrAsPrivKey(t *testing.T) {
 			},
 		},
 		{
-			name:        "Failure::PEMStrAsKey::failed to decode PEM block::Empty Private Key",
+			name:        "Failure::PEMStrAsPrivKey::failed to decode PEM block::Empty Private Key",
 			requestBody: "Hello World",
 			setupFunc: func() (string, rsa.PrivateKey) {
 				privKey, _ := rsa.GenerateKey(rand.Reader, 2048)
@@ -381,7 +380,7 @@ func Test_PEMStrAsPrivKey(t *testing.T) {
 			},
 		},
 		{
-			name:        "Failure::PEMStrAsKey::failed to decode PEM block::Incorrect PEM type",
+			name:        "Failure::PEMStrAsPrivKey::failed to decode PEM block::Incorrect PEM type",
 			requestBody: "Hello World",
 			setupFunc: func() (string, rsa.PrivateKey) {
 				privKey, _ := rsa.GenerateKey(rand.Reader, 2048)
@@ -403,7 +402,7 @@ func Test_PEMStrAsPrivKey(t *testing.T) {
 			},
 		},
 		{
-			name:        "Failure::PEMStrAsKey::illegal base64 data",
+			name:        "Failure::PEMStrAsPrivKey::illegal base64 data",
 			requestBody: "Hello World",
 			setupFunc: func() (string, rsa.PrivateKey) {
 				privKey, _ := rsa.GenerateKey(rand.Reader, 2048)
