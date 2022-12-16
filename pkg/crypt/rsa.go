@@ -31,7 +31,7 @@ func RsaOaepDecrypt(cipherText string, privKey rsa.PrivateKey) (string, error) {
 	return string(plaintext), nil
 }
 
-func KeyAsPEMStr(pubkey *rsa.PublicKey) string {
+func PubKeyAsPEMStr(pubkey *rsa.PublicKey) string {
 	pubKeyPem := string(pem.EncodeToMemory(
 		&pem.Block{
 			Type:  "RSA PUBLIC KEY",
@@ -40,7 +40,16 @@ func KeyAsPEMStr(pubkey *rsa.PublicKey) string {
 	))
 	return base64.StdEncoding.EncodeToString([]byte(pubKeyPem))
 }
-func PEMStrAsKey(pubKey string) (*rsa.PublicKey, error) {
+func PrivKeyAsPEMStr(key *rsa.PrivateKey) string {
+	pubKeyPem := string(pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: x509.MarshalPKCS1PrivateKey(key),
+		},
+	))
+	return base64.StdEncoding.EncodeToString([]byte(pubKeyPem))
+}
+func PEMStrAsPubKey(pubKey string) (*rsa.PublicKey, error) {
 	decodeString, err := base64.StdEncoding.DecodeString(pubKey)
 	if err != nil {
 		return nil, err
@@ -51,6 +60,22 @@ func PEMStrAsKey(pubKey string) (*rsa.PublicKey, error) {
 		return nil, err
 	}
 	pubInterface, err := x509.ParsePKCS1PublicKey(spkiBlock.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	return pubInterface, err
+}
+func PEMStrAsPrivKey(pubKey string) (*rsa.PrivateKey, error) {
+	decodeString, err := base64.StdEncoding.DecodeString(pubKey)
+	if err != nil {
+		return nil, err
+	}
+	spkiBlock, _ := pem.Decode(decodeString)
+	if spkiBlock == nil || spkiBlock.Type != "RSA PRIVATE KEY" {
+		err := errors.New("failed to decode PEM block containing public key")
+		return nil, err
+	}
+	pubInterface, err := x509.ParsePKCS1PrivateKey(spkiBlock.Bytes)
 	if err != nil {
 		return nil, err
 	}
