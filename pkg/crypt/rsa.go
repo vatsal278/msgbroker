@@ -10,6 +10,8 @@ import (
 	"errors"
 )
 
+// RsaOaepEncrypt encrypts a message using RSA-OAEP encryption with the given public key.
+// Returns the encrypted message as a base64-encoded string and an error if one occurred.
 func RsaOaepEncrypt(secretMessage string, key rsa.PublicKey) (string, error) {
 	label := []byte("OAEP Encrypted")
 	rng := rand.Reader
@@ -20,6 +22,8 @@ func RsaOaepEncrypt(secretMessage string, key rsa.PublicKey) (string, error) {
 	return base64.StdEncoding.EncodeToString(ciphertext), err
 }
 
+// RsaOaepDecrypt decrypts a message using RSA-OAEP decryption with the given private key.
+// Returns the decrypted message and an error if one occurred.
 func RsaOaepDecrypt(cipherText string, privKey rsa.PrivateKey) (string, error) {
 	ct, _ := base64.StdEncoding.DecodeString(cipherText)
 	label := []byte("OAEP Encrypted")
@@ -31,6 +35,8 @@ func RsaOaepDecrypt(cipherText string, privKey rsa.PrivateKey) (string, error) {
 	return string(plaintext), nil
 }
 
+// PubKeyAsPEMStr converts an RSA public key to a PEM-encoded string and then base64-encodes the result.
+// Returns the base64-encoded PEM string.
 func PubKeyAsPEMStr(pubkey *rsa.PublicKey) string {
 	pubKeyPem := string(pem.EncodeToMemory(
 		&pem.Block{
@@ -40,6 +46,9 @@ func PubKeyAsPEMStr(pubkey *rsa.PublicKey) string {
 	))
 	return base64.StdEncoding.EncodeToString([]byte(pubKeyPem))
 }
+
+// PrivKeyAsPEMStr converts an RSA private key to a PEM-encoded string and then base64-encodes the result.
+// Returns the base64-encoded PEM string.
 func PrivKeyAsPEMStr(key *rsa.PrivateKey) string {
 	pubKeyPem := string(pem.EncodeToMemory(
 		&pem.Block{
@@ -49,6 +58,9 @@ func PrivKeyAsPEMStr(key *rsa.PrivateKey) string {
 	))
 	return base64.StdEncoding.EncodeToString([]byte(pubKeyPem))
 }
+
+// PEMStrAsPubKey decodes a base64-encoded PEM string containing an RSA public key
+// and returns the corresponding *rsa.PublicKey and an error if one occurred.
 func PEMStrAsPubKey(pubKey string) (*rsa.PublicKey, error) {
 	decodeString, err := base64.StdEncoding.DecodeString(pubKey)
 	if err != nil {
@@ -65,6 +77,9 @@ func PEMStrAsPubKey(pubKey string) (*rsa.PublicKey, error) {
 	}
 	return pubInterface, err
 }
+
+// PEMStrAsPrivKey decodes a base64-encoded PEM string containing an RSA private key
+// and returns the corresponding *rsa.PrivateKey and an error if one occurred.
 func PEMStrAsPrivKey(pubKey string) (*rsa.PrivateKey, error) {
 	decodeString, err := base64.StdEncoding.DecodeString(pubKey)
 	if err != nil {

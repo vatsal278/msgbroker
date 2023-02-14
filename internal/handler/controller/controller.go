@@ -1,9 +1,8 @@
+// Package controller defines the HTTP controller for the message broker
 package controller
 
 import (
 	"bytes"
-	"github.com/vatsal278/msgbroker/internal/pkg/parser"
-	"github.com/vatsal278/msgbroker/model"
 	"log"
 	"net/http"
 	"reflect"
@@ -12,17 +11,23 @@ import (
 	"github.com/google/uuid"
 	"github.com/vatsal278/msgbroker/internal/constants"
 	"github.com/vatsal278/msgbroker/internal/handler"
+	"github.com/vatsal278/msgbroker/internal/pkg/parser"
+	"github.com/vatsal278/msgbroker/model"
 	"github.com/vatsal278/msgbroker/pkg/crypt"
 	"github.com/vatsal278/msgbroker/pkg/responseWriter"
 )
 
+// models contains the internal state of the message broker
 type models struct {
 	messageBroker model.MessageBroker
 }
 
+// MsgBrokerUserAgent is the user agent string for the message broker
 const MsgBrokerUserAgent = "MessageBroker"
 
+// NewController creates a new controller for the message broker
 func NewController() controllerInterface.IController {
+	// Initialize the message broker with empty maps for publishers and subscribers
 	return &models{
 		messageBroker: model.MessageBroker{
 			SubM: map[string][]model.Subscriber{},
@@ -31,6 +36,7 @@ func NewController() controllerInterface.IController {
 	}
 }
 
+// RegisterPublisher is the HTTP handler for registering a new publisher
 func (m *models) RegisterPublisher() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var publisher model.Publisher
@@ -59,6 +65,7 @@ func (m *models) RegisterPublisher() func(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// RegisterSubscriber is the HTTP handler for registering a new subscriber
 func (m *models) RegisterSubscriber() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var subscriber model.Subscriber
@@ -89,6 +96,7 @@ func (m *models) RegisterSubscriber() func(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// PublishMessage returns an HTTP handler function that handles publish message requests.
 func (m *models) PublishMessage() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var updates model.Updates

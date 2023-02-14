@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 )
 
+//Parse helps parse the body of an HTTP request and write it to a struct
 func Parse(reqbody io.ReadCloser, x interface{}) error {
 	//Read body of the request
 	body, err := ioutil.ReadAll(reqbody)

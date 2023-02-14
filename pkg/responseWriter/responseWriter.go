@@ -11,6 +11,7 @@ type Response interface {
 	Update(int, string, interface{})
 }
 
+// ResponseWriter writes a response to an HTTP request
 func ResponseWriter(w http.ResponseWriter, status int, msg string, data interface{}, r Response) error {
 	//verify content type
 	w.Header().Set("Content-Type", "application/json")
