@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+//Router returns a new instance of a mux.Router and sets up routes on it.
 func Router() *mux.Router {
 	i := controller.NewController()
 
