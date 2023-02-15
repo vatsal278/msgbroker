@@ -1,3 +1,4 @@
+//Package responseWriter provides utilities to write a response to http.ResponseWriter.
 package responseWriter
 
 import (
@@ -11,9 +12,8 @@ type Response interface {
 	Update(int, string, interface{})
 }
 
-// ResponseWriter writes a response to an HTTP request
+// ResponseWriter writes a response to http.ResponseWriter in json format
 func ResponseWriter(w http.ResponseWriter, status int, msg string, data interface{}, r Response) error {
-	//verify content type
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	r.Update(status, msg, data)

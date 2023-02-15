@@ -1,3 +1,4 @@
+// Package sdk provides a suite of wrapped functions to make the direct calls to msgbroker service
 package sdk
 
 import (
@@ -157,7 +158,8 @@ func (m *msgBrokerSvc) PushMsg(msg string, uuid string, channel string) error {
 	return nil
 }
 
-// ExtractMsg returns a function that can extract a message from a ReadCloser
+// ExtractMsg takes in a pointer to an RSA private key as a parameter and returns a function that accepts a ReadCloser and returns a string and an error.
+// This returned function reads the message from the ReadCloser and decrypts it using the provided private key if it's not nil, or returns the message as is if the private key is nil.
 func (m *msgBrokerSvc) ExtractMsg(key *rsa.PrivateKey) func(closer io.ReadCloser) (string, error) {
 	// return a function that takes a ReadCloser and returns the decrypted message or an error
 	return func(source io.ReadCloser) (string, error) {

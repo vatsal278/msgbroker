@@ -1,3 +1,4 @@
+// Package validate provides functions to validate the structs.
 package validate
 
 import "github.com/go-playground/validator/v10"

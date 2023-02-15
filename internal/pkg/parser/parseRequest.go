@@ -1,3 +1,4 @@
+// Package parseRequest provides functions that helps parse the body of an HTTP request, write it to a struct and validate all the fields
 package parseRequest
 
 import (
