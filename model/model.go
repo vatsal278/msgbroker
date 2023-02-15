@@ -35,8 +35,10 @@ type Publisher struct {
 // Updates represents an update object, containing information about the publisher
 // and the message to be published.
 type Updates struct {
-	Publisher Publisher `form:"publisher" json:"publisher" validate:"required"` // Publisher object containing information about the publisher
-	Update    string    `form:"update" json:"update" validate:"required"`       // The message to be published
+	// Publisher object containing information about the publisher
+	Publisher Publisher `form:"publisher" json:"publisher" validate:"required"`
+	// The message to be published
+	Update string `form:"update" json:"update" validate:"required"`
 }
 
 // MessageBroker is the main object which holds the subscribers and publishers
