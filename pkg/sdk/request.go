@@ -1,4 +1,4 @@
-// Package sdk provides a suite of wrapped functions to make the direct calls to msgbroker service
+// Package sdk provides a suite of wrapped functions to make the direct calls to msg broker service.
 package sdk
 
 import (

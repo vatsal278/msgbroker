@@ -1,3 +1,4 @@
+// Package constants provides all the constant values that are used in this service
 package constants
 
 const (

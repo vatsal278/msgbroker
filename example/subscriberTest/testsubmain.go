@@ -1,3 +1,4 @@
+//Example Subscriber
 package main
 
 import (

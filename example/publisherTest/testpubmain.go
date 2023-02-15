@@ -1,3 +1,4 @@
+//Example Publisher
 package main
 
 import (
